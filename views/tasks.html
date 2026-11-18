@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Create and manage your own tasks securely."
+    />
+    <title>Your tasks · Agentic</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <script type="module" src="/js/app.js"></script>
+    <script type="module" src="/js/tasks.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header id="site-header"></header>
+    <main id="main">
+      <p class="eyebrow">YOUR WORK / YOUR PACE</p>
+      <h1>Your tasks.</h1>
+      <p class="lead">
+        A clear place for what matters next. Only you can access your tasks.
+      </p>
+      <div id="task-root">
+        <p id="task-status" role="status" aria-live="polite"></p>
+        <p id="task-login" hidden>
+          Your session has expired. <a href="/login">Log in again</a> to manage
+          your tasks.
+        </p>
+        <div id="task-workspace" class="task-layout">
+          <section
+            class="card task-form-card"
+            aria-labelledby="task-form-heading"
+          >
+            <h2 id="task-form-heading">Create a task</h2>
+            <form id="task-form" novalidate>
+              <label for="task-title">Task title</label>
+              <input
+                id="task-title"
+                name="title"
+                required
+                maxlength="200"
+                aria-describedby="task-title-error"
+              />
+              <small id="task-title-error" class="task-field-error"></small>
+              <label for="task-description">Description (optional)</label>
+              <textarea
+                id="task-description"
+                name="description"
+                maxlength="2000"
+                aria-describedby="task-description-error"
+              ></textarea>
+              <small
+                id="task-description-error"
+                class="task-field-error"
+              ></small>
+              <label for="task-priority">Priority</label>
+              <select
+                id="task-priority"
+                name="priority"
+                aria-describedby="task-priority-error"
+              >
+                <option>Low</option>
+                <option selected>Medium</option>
+                <option>High</option>
+              </select>
+              <small id="task-priority-error" class="task-field-error"></small>
+              <label for="task-dueDate">Due date (optional)</label>
+              <input
+                id="task-dueDate"
+                name="dueDate"
+                type="date"
+                min="0001-01-01"
+                max="9999-12-31"
+                aria-describedby="task-dueDate-error"
+              />
+              <small id="task-dueDate-error" class="task-field-error"></small>
+              <div class="task-actions">
+                <button id="task-submit" type="submit">Create task</button
+                ><button
+                  id="task-edit-cancel"
+                  class="secondary"
+                  type="button"
+                  hidden
+                >
+                  Cancel editing
+                </button>
+              </div>
+            </form>
+          </section>
+          <section
+            class="task-list-section"
+            aria-labelledby="task-list-heading"
+          >
+            <div class="task-list-header">
+              <h2 id="task-list-heading" tabindex="-1">Your task list</h2>
+              <button id="task-refresh" class="text-button" type="button">
+                Refresh tasks
+              </button>
+            </div>
+            <p id="task-loading" role="status">Loading your tasks…</p>
+            <p id="task-empty" class="card" hidden>
+              No tasks yet. Create your first task to get started.
+            </p>
+            <ul id="task-list" class="task-list"></ul>
+          </section>
+        </div>
+        <dialog
+          id="task-delete-dialog"
+          aria-labelledby="task-delete-heading"
+          aria-describedby="task-delete-message"
+        >
+          <h2 id="task-delete-heading">Permanently delete task?</h2>
+          <p id="task-delete-message"></p>
+          <p>This cannot be undone.</p>
+          <div class="task-actions">
+            <button
+              id="task-delete-cancel"
+              class="secondary"
+              type="button"
+              autofocus
+            >
+              Cancel deletion</button
+            ><button id="task-delete-confirm" type="button">
+              Delete permanently
+            </button>
+          </div>
+        </dialog>
+      </div>
+    </main>
+    <footer id="site-footer"></footer>
+    <div id="cookie-root"></div>
+  </body>
+</html>

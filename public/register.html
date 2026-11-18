@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A privacy-conscious account demo with a simple personal profile."
+    />
+    <title>A fresh start · Agentic</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <script type="module" src="/js/app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header id="site-header"></header>
+    <main id="main">
+      <div class="form-layout">
+        <section>
+          <p class="eyebrow">JOIN THE DEMO</p>
+          <h1>A fresh<br />start.</h1>
+          <p class="lead">
+            Your account is ready as soon as you register. No verification email
+            is sent.
+          </p>
+        </section>
+        <section class="card">
+          <h2>Create your account</h2>
+          <form id="register-form">
+            <label
+              >Full name<input
+                name="fullName"
+                autocomplete="name"
+                required
+                minlength="2"
+                maxlength="100" /></label
+            ><label
+              >Email address<input
+                name="email"
+                type="email"
+                autocomplete="email"
+                required
+                maxlength="254"
+            /></label>
+            <div class="two-col">
+              <label
+                >Password<input
+                  name="password"
+                  type="password"
+                  autocomplete="new-password"
+                  required
+                  minlength="12"
+                  maxlength="72"
+                  aria-describedby="password-help" /></label
+              ><label
+                >Confirm password<input
+                  name="confirmPassword"
+                  type="password"
+                  autocomplete="new-password"
+                  required
+              /></label>
+            </div>
+            <small id="password-help"
+              >Use 12–72 characters (at most 72 UTF-8 bytes).</small
+            ><label
+              >Phone <small>(optional)</small
+              ><input
+                name="phone"
+                type="tel"
+                autocomplete="tel"
+                maxlength="30" /></label
+            ><label
+              >Address <small>(optional)</small
+              ><textarea
+                name="address"
+                autocomplete="street-address"
+                maxlength="500"
+              ></textarea></label
+            ><label class="check"
+              ><input name="termsAccepted" type="checkbox" required />
+              <span
+                >I accept the
+                <a href="/terms" target="_blank" rel="noopener"
+                  >Terms of Service</a
+                >.</span
+              ></label
+            ><label class="check"
+              ><input name="privacyAcknowledged" type="checkbox" required />
+              <span
+                >I acknowledge the
+                <a href="/privacy" target="_blank" rel="noopener"
+                  >Privacy Notice</a
+                >.</span
+              ></label
+            ><button type="submit">Create account →</button>
+            <p id="status" role="status" aria-live="polite"></p>
+          </form>
+          <p>Already registered? <a href="/login">Log in</a></p>
+        </section>
+      </div>
+    </main>
+    <footer id="site-footer"></footer>
+    <div id="cookie-root"></div>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+node_modules
+dist
+package-lock.json
+data/users.json
+.npm-cache
+.playwright-browsers
+.test-results
+playwright-report
+data/tasks.json

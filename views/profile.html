@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A privacy-conscious account demo with a simple personal profile."
+    />
+    <title>Your information · Agentic</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <script type="module" src="/js/app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header id="site-header"></header>
+    <main id="main">
+      <p class="eyebrow">ACCOUNT / PROFILE</p>
+      <h1>Your information.</h1>
+      <p class="lead">
+        A little about you. Update your details whenever you need.
+      </p>
+      <section class="card profile-card">
+        <h2>Personal details</h2>
+        <form id="profile-form">
+          <label
+            >Full name<input
+              name="fullName"
+              autocomplete="name"
+              required
+              minlength="2"
+              maxlength="100" /></label
+          ><label
+            >Email address<input
+              name="email"
+              type="email"
+              readonly
+              aria-describedby="email-help" /></label
+          ><small id="email-help"
+            >Your email is your login ID and cannot be changed here.</small
+          ><label
+            >Phone<input
+              name="phone"
+              type="tel"
+              autocomplete="tel"
+              maxlength="30" /></label
+          ><label
+            >Address<textarea
+              name="address"
+              autocomplete="street-address"
+              maxlength="500"
+            ></textarea></label
+          ><button type="submit">Save changes →</button>
+          <p id="status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+    </main>
+    <footer id="site-footer"></footer>
+    <div id="cookie-root"></div>
+  </body>
+</html>

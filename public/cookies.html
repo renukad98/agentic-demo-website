@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A privacy-conscious account demo with a simple personal profile."
+    />
+    <title>Cookie Policy · Agentic</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <script type="module" src="/js/app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header id="site-header"></header>
+    <main id="main">
+      <article class="legal">
+        <p class="eyebrow">POLICY VERSION 1.0</p>
+        <h1>Small cookies.<br />Clear choices.</h1>
+        <p>
+          Necessary storage keeps your account working. Everything else is your
+          choice, and you can change your mind at any time.
+        </p>
+        <h2>Storage used by this demo</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Purpose</th>
+                <th>Category</th>
+                <th>Duration</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>agentic.sid (cookie)</td>
+                <td>Session and CSRF request protection</td>
+                <td>Strictly Necessary</td>
+                <td>8 hours; cleared at logout</td>
+              </tr>
+              <tr>
+                <td>agentic.consent (localStorage)</td>
+                <td>Categories, timestamp, policy version</td>
+                <td>Strictly Necessary</td>
+                <td>180 days; renewed when saved</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <h2>Optional categories</h2>
+        <p>
+          Functional supports convenience features, Analytics measures usage,
+          and Marketing supports advertising. This demo does not set cookies or
+          load services in any optional category, even when enabled.
+        </p>
+        <h2>Withdraw or change consent</h2>
+        <p>
+          Use Cookie Settings in every footer to change or withdraw your
+          choices. Rejecting optional storage does not prevent login. Clearing
+          browser storage removes your record and shows the banner again.
+        </p>
+        <p>
+          For controller and contact information, read the
+          <a href="/privacy">Privacy Notice</a>.
+        </p>
+        <button type="button" data-cookie-settings>Cookie Settings</button>
+      </article>
+    </main>
+    <footer id="site-footer"></footer>
+    <div id="cookie-root"></div>
+  </body>
+</html>
