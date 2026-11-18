@@ -25,16 +25,16 @@ For a bounded task: `Use $test-review-agent to review <local test-design path> a
 
 | Skill                                                                                          | Responsibility                                                    |
 | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [qa-orchestrator](../../.agents/skills/qa-orchestrator/SKILL.md)                               | Own handoffs, evidence, approval gates and final readiness        |
-| [jira-story-agent](../../.agents/skills/jira-story-agent/SKILL.md)                             | Retrieve source stories; prepare eventual status-change proposals |
-| [requirements-analysis-agent](../../.agents/skills/requirements-analysis-agent/SKILL.md)       | Derive testable requirements and resolve ambiguities              |
-| [feature-development-agent](../../.agents/skills/feature-development-agent/SKILL.md)           | Implement approved behavior and associated automated tests        |
-| [test-design-agent](../../.agents/skills/test-design-agent/SKILL.md)                           | Design cases and coverage                                         |
-| [test-review-agent](../../.agents/skills/test-review-agent/SKILL.md)                           | Review coverage, oracles and test quality                         |
-| [playwright-automation-agent](../../.agents/skills/playwright-automation-agent/SKILL.md)       | Implement repeatable browser automation                           |
-| [test-execution-reporting-agent](../../.agents/skills/test-execution-reporting-agent/SKILL.md) | Execute checks and analyze evidence                               |
-| [xray-test-publisher-agent](../../.agents/skills/xray-test-publisher-agent/SKILL.md)           | Prepare reviewed payloads; publish only when separately approved  |
-| [github-integration-agent](../../.agents/skills/github-integration-agent/SKILL.md)             | Read repository metadata; prepare reviewed GitHub changes         |
+| [qa-orchestrator](../../.agents/skills/10-qa-orchestrator/SKILL.md)                               | Own handoffs, evidence, approval gates and final readiness        |
+| [jira-story-agent](../../.agents/skills/01-jira-story-agent/SKILL.md)                             | Retrieve source stories; prepare eventual status-change proposals |
+| [requirements-analysis-agent](../../.agents/skills/02-requirements-analysis-agent/SKILL.md)       | Derive testable requirements and resolve ambiguities              |
+| [feature-development-agent](../../.agents/skills/03-feature-development-agent/SKILL.md)           | Implement approved behavior and associated automated tests        |
+| [test-design-agent](../../.agents/skills/04-test-design-agent/SKILL.md)                           | Design cases and coverage                                         |
+| [test-review-agent](../../.agents/skills/05-test-review-agent/SKILL.md)                           | Review coverage, oracles and test quality                         |
+| [playwright-automation-agent](../../.agents/skills/06-playwright-automation-agent/SKILL.md)       | Implement repeatable browser automation                           |
+| [test-execution-reporting-agent](../../.agents/skills/07-test-execution-reporting-agent/SKILL.md) | Execute checks and analyze evidence                               |
+| [xray-test-publisher-agent](../../.agents/skills/08-xray-test-publisher-agent/SKILL.md)           | Prepare reviewed payloads; publish only when separately approved  |
+| [github-integration-agent](../../.agents/skills/09-github-integration-agent/SKILL.md)             | Read repository metadata; prepare reviewed GitHub changes         |
 
 Each skill defines responsibilities, inputs, outputs, dependencies, autonomous scope, approval requirements, validation, and error handling. All roles inherit the [approval policy](approval-policy.md); credentials and external write permissions are never supplied by skill invocation.
 

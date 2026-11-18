@@ -5,16 +5,16 @@ Completed on 2026-11-15. Only instruction and documentation files changed. No we
 ## Created files
 
 - `AGENTS.md`
-- `.agents/skills/qa-orchestrator/SKILL.md`
-- `.agents/skills/jira-story-agent/SKILL.md`
-- `.agents/skills/requirements-analysis-agent/SKILL.md`
-- `.agents/skills/feature-development-agent/SKILL.md`
-- `.agents/skills/test-design-agent/SKILL.md`
-- `.agents/skills/test-review-agent/SKILL.md`
-- `.agents/skills/playwright-automation-agent/SKILL.md`
-- `.agents/skills/test-execution-reporting-agent/SKILL.md`
-- `.agents/skills/xray-test-publisher-agent/SKILL.md`
-- `.agents/skills/github-integration-agent/SKILL.md`
+- `.agents/skills/10-qa-orchestrator/SKILL.md`
+- `.agents/skills/01-jira-story-agent/SKILL.md`
+- `.agents/skills/02-requirements-analysis-agent/SKILL.md`
+- `.agents/skills/03-feature-development-agent/SKILL.md`
+- `.agents/skills/04-test-design-agent/SKILL.md`
+- `.agents/skills/05-test-review-agent/SKILL.md`
+- `.agents/skills/06-playwright-automation-agent/SKILL.md`
+- `.agents/skills/07-test-execution-reporting-agent/SKILL.md`
+- `.agents/skills/08-xray-test-publisher-agent/SKILL.md`
+- `.agents/skills/09-github-integration-agent/SKILL.md`
 - `docs/agent-framework/README.md`
 - `docs/agent-framework/approval-policy.md`
 - `docs/agent-framework/mcp-integrations.md`
