@@ -11,6 +11,14 @@ Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules
 
 ## Responsibilities
 
+### Chat-approved opt-in session
+
+Use this route only in an authorized `xray_website` session explicitly started with `--enable-writes` or `XRAY_ENABLE_WRITES=true`. Verify tool schemas and session authorization. Resolve the Story and project from current QA evidence, stop on paused Stories or incomplete local gates, and finish paginated duplicate review first. Stop if equivalence or identity is ambiguous.
+
+Show the owner an exact preview with the tenant, project, Story, and each case's TS-ID, summary, ordered action/data/result steps, optional folder, duplicate status and intended link. Mark each case create, reuse or skip. End the preview with “Reply OK to approve these exact Manual Test creations and Story links.” The owner's explicit `OK` to that preview authorizes only the listed operations. Recheck Story and evidence freshness and obtain a new approval if a decision or payload changes.
+
+Process one Test at a time. Call `xray_create_manual_test` only for an approved create. Call `xray_resolve_test_keys` with the issue ID returned by creation or verified by duplicate review. Stop on a missing or conflicting key. Update `artifacts/qa/<story-key>/xray-test-keys.json` with the verified TS-ID → Jira key before attempting the approved `xray_link_test_to_story` call. Preserve existing mappings and stop on a conflicting mapping. Verify the link result. Stop on the first error or uncertain result and reconcile by reads before considering a retry. This approval covers Manual Test creation and Story linking only.
+
 ### Reviewed Manual Test batches
 
 For a separately authorized Phase 5E Windows demo, use the existing connector in signed-scope mode. Read `xray_get_local_demo_challenge` from the active reviewed Story and hand the complete challenge to the separate issuer. After scope approval and signature, pass the grant with `{ "activeStory": true }` to `xray_prepare_story_publication`. The connector calculates the SHA-256 digests. The operator's one native Allow covers the exact Manual Tests and links. Use the returned approval once and obtain status in the same session. Record operator identity as unverified and reconcile ambiguous results by reads. This phase authorizes local implementation only. See the [signed demo runbook](../../../docs/agent-framework/xray-personal-batch.md).
@@ -25,9 +33,9 @@ Resolve the active Story via `qa/current.json` and its feature record. Stop on a
 
 For a request such as “Publish the approved Manual Tests for ABC-123,” resolve the requested Story and its reviewed cases using the existing QA evidence. Read the `manualTestBatch` settings in [qa/pipeline.json](../../../qa/pipeline.json). Use only the extracted `xray_website` connector registered in the trusted project's `.codex/config.toml`. Use authorized Jira reads for Story metadata. Read all candidate pages and relevant coverage. Reuse only verified equivalent Manual Tests, verify their IDs and expected links, and stop on ambiguity. Prepare the proposed plan locally and keep its fingerprint internal.
 
-During this integration phase, call `xray_website.xray_prepare_story_publication` only in the credential-free `--personal-batch-probe` session and only with the synthetic fixture in the [runbook](../../../docs/agent-framework/xray-personal-batch.md). Treat Accept, Decline, and Cancel as validation results only. With `liveDispatchEnabled: false`, stop after read-only planning or probe validation. Do not invoke publish, resume, create, or link through any connector or CLI. Keep the story stage pending publication. If the configured connector or probe is unavailable, report the blocker.
+For personal-batch validation, call `xray_website.xray_prepare_story_publication` in the credential-free `--personal-batch-probe` session with the synthetic fixture in the [runbook](../../../docs/agent-framework/xray-personal-batch.md). Treat Accept, Decline, and Cancel as validation results only. With `liveDispatchEnabled: false`, that batch route stops after read-only planning or probe validation. Keep the batch pending publication. If the configured connector or probe is unavailable, report the blocker.
 
-A future personal-demo trial requires a separately reviewed scope activation under the approval policy, an enabled QA route and a verified opt-in `xray_website` session scoped to the authorized batch. Recheck the plan, duplicates, Jira link metadata and journal before calling the connector's batch preparation once. Wait for the native form. Decline, cancel, missing approval, changed evidence, or expiry stops the batch. On Allow, use the connector-issued approval ID and the unchanged plan with the guarded publisher once. Verify each Test and link by readback, report created, reused, linked, skipped, or unresolved cases, and reconcile uncertainty without resending the batch. A chat `OK`, probe result, or generated terminal response grants no authority. The trusted publisher retains its separate policy.
+A future personal-demo trial requires a separately reviewed scope activation under the approval policy, an enabled QA route and a verified opt-in `xray_website` session scoped to the authorized batch. Recheck the plan, duplicates, Jira link metadata and journal before calling the connector's batch preparation once. Wait for the native form. Decline, cancel, missing approval, changed evidence, or expiry stops the batch. On Allow, use the connector-issued approval ID and the unchanged plan with the guarded publisher once. Verify each Test and link by readback, report created, reused, linked, skipped, or unresolved cases, and reconcile uncertainty without resending the batch. The trusted publisher retains its separate policy.
 
 Read MCP integration documentation. During Phase 2B document only; do not call preparation tools that persist demo approval state. In a later authorized phase inspect existing tests and complete paginated duplicate review, prepare local payloads and a human approval request. Do not propose publication until all local QA gates pass. Distinguish test creation, story linking and execution-result import as separately authorized capabilities. Never assume import is supported; no import tool is exposed now.
 
@@ -41,7 +49,7 @@ Local publication plan and exact candidate payloads; after approved publication,
 
 ## MCP tools or dependencies
 
-Existing Xray MCP read tools; guarded publication tools only after schema/capability verification and explicit approval. See [integration limits](../../../docs/agent-framework/mcp-integrations.md).
+Use Xray MCP read tools for evidence and the selected route's publication tools after verifying schemas, capabilities, and explicit approval. See [integration limits](../../../docs/agent-framework/mcp-integrations.md).
 
 ## Allowed autonomous actions
 
@@ -49,7 +57,7 @@ Read authorized tests/coverage and generate local publication proposals after pr
 
 ## Actions requiring human approval
 
-All Xray publication, issue linking and result import require explicit scope plus connector safeguards. Demo approval IDs are not human authorization.
+All Xray publication, issue linking and result import require explicit scope and the safeguards for the selected route. Use the exact chat preview for the opt-in route described above. Demo approval IDs are not human authorization.
 
 ## Validation requirements
 

@@ -77,7 +77,7 @@ test('disabled batch startup exits before credentials, MCP approval or dispatch'
   assert.ifError(unexpected.error);
   assert.equal(unexpected.status, 1);
   assert.equal(unexpected.stdout, '');
-  assert.equal(unexpected.stderr, 'Xray MCP server failed to start; details withheld for safety.\n');
+  assert.match(unexpected.stderr, /^Xray MCP server failed to start: .*JSON/);
 });
 
 test('signed Windows startup exposes a challenge only with an external public key and still rejects an ungranted publish',
@@ -347,7 +347,7 @@ test('one reusable native session loads active evidence, rejects unsafe batches 
     });
     assert.equal(withoutForm.isError, true);
     assert.deepEqual(withoutForm.content, [
-      { type: 'text', text: 'Xray request failed; details were withheld for safety.' },
+      { type: 'text', text: 'Native MCP form confirmation is unavailable.' },
     ]);
     const withoutApproval = await publish({ approvalId: '00000000-0000-4000-8000-000000000001', plan: first });
     assert.equal(withoutApproval.isError, true);

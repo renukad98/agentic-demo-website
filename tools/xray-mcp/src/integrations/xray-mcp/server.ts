@@ -22,9 +22,8 @@ import {
   type ManualTestPublicationInput,
   type XrayClient,
 } from '../../../helpers/xray-client.js';
-import { ApprovalServiceError } from '../../../agents/approval-service.js';
-import { LocalDemoApprovalService, LocalDemoApprovalError, isLocalDemoModeEnabled, type LocalDemoApprovalRequest } from '../../../agents/local-demo-approval.js';
-import { JiraIssueLinkClient, JiraIssueLinkError } from '../../../helpers/jira-link-client.js';
+import { LocalDemoApprovalService, isLocalDemoModeEnabled, type LocalDemoApprovalRequest } from '../../../agents/local-demo-approval.js';
+import { JiraIssueLinkClient } from '../../../helpers/jira-link-client.js';
 
 interface GraphqlClient {
   graphqlRequest<TData>(query: string, variables?: Record<string, unknown>): Promise<TData>;
@@ -150,14 +149,19 @@ function text(value: unknown): string | null {
 }
 
 function redactKnownSecrets(value: string): string {
-  const secrets = [process.env.XRAY_CLIENT_ID, process.env.XRAY_CLIENT_SECRET]
+  const { JIRA_EMAIL, JIRA_API_TOKEN } = process.env;
+  const jiraBasic = JIRA_EMAIL && JIRA_API_TOKEN
+    ? Buffer.from(`${JIRA_EMAIL.trim()}:${JIRA_API_TOKEN.trim()}`).toString('base64')
+    : undefined;
+  const secrets = [process.env.XRAY_CLIENT_ID, process.env.XRAY_CLIENT_SECRET, JIRA_EMAIL, JIRA_API_TOKEN, jiraBasic]
+    .map(secret => secret?.trim())
     .filter((secret): secret is string => Boolean(secret))
     .sort((left, right) => right.length - left.length);
   let sanitized = value;
   for (const secret of secrets) sanitized = sanitized.split(secret).join('[REDACTED]');
   return sanitized
-    .replace(/\bauthorization\b\s*[:=]\s*(?:bearer\s+)?[^\s,;]+/gi, 'authorization=[REDACTED]')
-    .replace(/\bbearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
+    .replace(/\bauthorization\b\s*[:=]\s*(?:(?:bearer|basic)\s+)?[^\s,;]+/gi, 'authorization=[REDACTED]')
+    .replace(/\b(bearer|basic)\s+[A-Za-z0-9._~+/=-]+/gi, '$1 [REDACTED]')
     .slice(0, 2_000);
 }
 
@@ -178,18 +182,16 @@ function escapeJqlPhrase(value: string): string {
   return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
 }
 
+function safeErrorMessage(error: unknown): string {
+  return redactKnownSecrets(error instanceof Error ? error.message : String(error));
+}
+
 function errorResult(error: unknown): { content: [{ type: 'text'; text: string }]; isError: true } {
   if (error instanceof XrayDuplicateReviewError) return { content: [{ type: 'text', text: JSON.stringify({
     code: error.code, testCaseId: error.packet?.testCaseId,
     candidates: error.packet?.candidates.map(c => c.ref),
   }) }], isError: true };
-  const message = error instanceof XrayClientError
-    ? redactKnownSecrets(error.message)
-    : error instanceof ApprovalServiceError
-      ? error.message
-      : error instanceof LocalDemoApprovalError || error instanceof JiraIssueLinkError
-        ? error.message
-      : 'Xray request failed; details were withheld for safety.';
+  const message = safeErrorMessage(error);
   return { content: [{ type: 'text', text: message }], isError: true };
 }
 
@@ -641,6 +643,68 @@ export function createXrayMcpServer(
   return server;
 }
 
+/** The caller owns chat approval. Use only in an authorized local session. */
+export function createChatWriteXrayMcpServer(
+  client: GraphqlClient & Pick<XrayClient, 'createManualTest'>,
+  getJiraClient = () => JiraIssueLinkClient.fromEnvironment(),
+): McpServer {
+  const server = createXrayMcpServer(client);
+  const writeAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true };
+  server.registerTool('xray_create_manual_test', {
+    description: 'Create one Manual Test after explicit approval of the exact chat preview.',
+    inputSchema: z.object({
+      projectKey: projectKeySchema,
+      summary: z.string().min(1).max(255).refine(value => value.trim().length > 0),
+      steps: z.array(z.object({
+        action: z.string().refine(value => value.trim().length > 0),
+        data: z.string(),
+        result: z.string().refine(value => value.trim().length > 0),
+      }).strict()).min(1).max(200),
+      folderPath: z.string().refine(value => value.trim().length > 0).optional(),
+    }).strict(),
+    annotations: writeAnnotations,
+  }, input => toolResult(() => client.createManualTest(input)));
+
+  const linkSchema = prepareTestLinkPreviewInputSchema.pick({ storyKey: true, testKey: true });
+  server.registerTool('xray_resolve_test_keys', {
+    description: 'Resolve Xray Test issue IDs to Jira keys. A null key indicates an unresolved ID.',
+    inputSchema: z.object({ issueIds: z.array(positiveIssueIdSchema).min(1).max(100) }).strict(),
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  }, ({ issueIds }) => toolResult(async () => {
+    const response = record(await client.graphqlRequest<unknown>(
+      `query ResolveTestKeys($issueIds: [String], $limit: Int!) {
+        getTests(issueIds: $issueIds, limit: $limit) { results { issueId jira(fields: ["key"]) } }
+      }`,
+      { issueIds: [...new Set(issueIds)], limit: issueIds.length },
+    ));
+    const results = record(response?.getTests)?.results;
+    if (!Array.isArray(results)) throw new XrayClientError('Xray did not return Test identities.');
+    const keys = new Map<string, string>();
+    for (const result of results) {
+      const test = record(result);
+      const issueId = text(test?.issueId);
+      const key = text(record(test?.jira)?.key);
+      if (!issueId || !key || !linkSchema.shape.testKey.safeParse(key).success) continue;
+      if (keys.has(issueId) && keys.get(issueId) !== key) {
+        throw new XrayClientError(`Xray returned conflicting keys for Test issue ID ${issueId}.`);
+      }
+      keys.set(issueId, key);
+    }
+    return issueIds.map(issueId => ({ issueId, key: keys.get(issueId) ?? null }));
+  }));
+
+  server.registerTool('xray_link_test_to_story', {
+    description: 'Link one verified Manual Test to the approved Jira Story and read back the Test link.',
+    inputSchema: linkSchema,
+    annotations: writeAnnotations,
+  }, ({ storyKey, testKey }) => toolResult(async () => {
+    const jira = getJiraClient();
+    const preview = await jira.prepare(storyKey, testKey, client);
+    return jira.linkTestToStory(preview);
+  }));
+  return server;
+}
+
 export async function pinPersonalBatchPlan(projectRoot: string, planPath: string, authorizedDigest: string) {
   const root = await realpath(projectRoot);
   const path = await realpath(resolve(root, planPath));
@@ -711,7 +775,10 @@ async function main(): Promise<void> {
     const approvals = new LocalDemoApprovalService(directory, undefined, undefined, 120_000);
     process.stderr.write('Xray MCP: LOCAL DEMO approval mode is active; it is not production authorization.\n');
     server = createXrayMcpServer(client, undefined, approvals, jira, undefined, { directory, tenant, projects, assertPinnedPlan });
-  } else if (process.argv[2] === '--signed-local-demo' && process.argv.length === 3) {
+  } else if (process.argv.slice(2).includes('--signed-local-demo')) {
+    if (process.argv[2] !== '--signed-local-demo' || process.argv.length !== 3) {
+      throw new Error('Signed local demo must be started with --signed-local-demo alone.');
+    }
     try {
       if (!isLocalDemoModeEnabled({ ...process.env, XRAY_LOCAL_DEMO_MODE: 'true' }) || !process.env.LOCALAPPDATA)
         throw new Error('Local demo requires Windows outside production and CI.');
@@ -742,10 +809,13 @@ async function main(): Promise<void> {
         directory, tenant, projects: new Set(),
         activeStory: { projectRoot: process.cwd(), signedScope: new LocalDemoGrantSession({ tenant, xrayOrigin }, issuerKey) },
       });
-    } catch {
-      process.stderr.write('Xray MCP: signed local demo configuration unavailable. Read-only tools only.\n');
+    } catch (error) {
+      process.stderr.write(`Xray MCP: signed local demo configuration unavailable. Read-only tools only. ${safeErrorMessage(error)}\n`);
       server = createXrayMcpServer(client);
     }
+  } else if (process.argv.slice(2).includes('--enable-writes') || process.env.XRAY_ENABLE_WRITES === 'true') {
+    process.stderr.write('Xray MCP: opt-in writes enabled for Manual Test creation and Story linking.\n');
+    server = createChatWriteXrayMcpServer(client);
   } else {
     server = createXrayMcpServer(client);
   }
@@ -753,9 +823,8 @@ async function main(): Promise<void> {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch(() => {
-    // Keep stdout reserved for MCP protocol messages and avoid leaking error details.
-    process.stderr.write('Xray MCP server failed to start; details withheld for safety.\n');
+  main().catch(error => {
+    process.stderr.write(`Xray MCP server failed to start: ${safeErrorMessage(error)}\n`);
     process.exitCode = 1;
   });
 }
