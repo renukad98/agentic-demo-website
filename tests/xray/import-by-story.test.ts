@@ -236,3 +236,42 @@ test("import combines repeated observations for the same Test key without maskin
   const tests = [...parseJUnit(group.payload).querySelectorAll("testcase")];
   assert.deepEqual(tests.map(junitOutcome), ["failure"]);
 });
+
+test("HTTP 400 shows a capped, redacted response and leaves the import pending", async (t) => {
+  const f = await fixture(t);
+  const fetcher: typeof fetch = async (url, request) => {
+    const parsed = new URL(String(url));
+    if (parsed.pathname.endsWith("/authenticate"))
+      return f.options.fetch(url, request);
+    return Response.json(
+      {
+        error: `Test type is incompatible with this import. fixture-token ${env.XRAY_CLIENT_SECRET} ${"x".repeat(600)} END-OF-RESPONSE`,
+      },
+      { status: 400 },
+    );
+  };
+  const options = { ...f.options, fetch: fetcher };
+  const { digest } = await prepareStoryResults(options);
+  await assert.rejects(importStoryResults(options, digest), (error: Error) => {
+    assert.match(error.message, /HTTP 400: .*Test type is incompatible/);
+    assert.match(error.message, /\[REDACTED\] \[REDACTED\]/);
+    assert.doesNotMatch(
+      error.message,
+      /fixture-token|synthetic-secret|END-OF-RESPONSE/,
+    );
+    assert.equal(
+      /HTTP 400: (.*)\); reconcile/.exec(error.message)?.[1]?.length,
+      500,
+    );
+    return true;
+  });
+  const journal = await readFile(
+    join(f.root, "artifacts/qa/KAN-25/xray-results/pending.json"),
+    "utf8",
+  );
+  assert.equal(JSON.parse(journal).digest, digest);
+  await assert.rejects(
+    importStoryResults(options, digest),
+    /Pending import for KAN-25/,
+  );
+});

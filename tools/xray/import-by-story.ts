@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
+import { stripVTControlCharacters } from "node:util";
 import { z } from "zod";
 import { noSymlinks, objectDigest, within } from "../agentic/artifacts.js";
 import {
@@ -230,11 +231,34 @@ async function recordExecution(
   }
 }
 
+class XrayHttpError extends Error {
+  constructor(status: number, detail: string) {
+    super(`HTTP ${status}${detail ? `: ${detail}` : ""}`);
+  }
+}
+
+function redactXrayError(text: string, credentials: readonly string[]) {
+  const variants = new Set(
+    credentials.flatMap((value) => [
+      value,
+      JSON.stringify(value).slice(1, -1),
+      new URLSearchParams({ value }).toString().slice(6),
+    ]),
+  );
+  for (const value of [...variants].sort((a, b) => b.length - a.length)) {
+    text = text.replaceAll(value, "[REDACTED]");
+  }
+  const detail = stripVTControlCharacters(text).replace(/\s+/g, " ").trim();
+  const limit = 500;
+  return detail.length > limit ? detail.slice(0, limit - 1) + "…" : detail;
+}
+
 async function post(
   fetcher: typeof fetch,
   url: string,
   headers: Record<string, string>,
   body: string,
+  credentials: readonly string[],
 ) {
   const response = await fetcher(url, {
     method: "POST",
@@ -243,7 +267,13 @@ async function post(
     redirect: "error",
     signal: AbortSignal.timeout(30_000),
   });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new XrayHttpError(
+      response.status,
+      redactXrayError(text, credentials),
+    );
+  }
   return (await response.json()) as unknown;
 }
 
@@ -332,6 +362,7 @@ export async function importStoryResults(
                 client_id: clientId,
                 client_secret: clientSecret,
               }),
+              [clientId, clientSecret],
             ),
           );
       }
@@ -347,6 +378,7 @@ export async function importStoryResults(
           Authorization: `Bearer ${token}`,
         },
         group.payload,
+        [clientId, clientSecret, token],
       );
       executionKey = z.object({ key }).parse(response).key;
       if (!executionKey.startsWith(group.projectKey + "-"))
@@ -369,9 +401,7 @@ export async function importStoryResults(
     } catch (error) {
       if (!dispatched) await rm(reservation);
       const message =
-        error instanceof Error && /^HTTP \d+$/.test(error.message)
-          ? error.message
-          : undefined;
+        error instanceof XrayHttpError ? error.message : undefined;
       if (
         !dispatched &&
         error instanceof Error &&
