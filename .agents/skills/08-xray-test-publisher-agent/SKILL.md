@@ -7,9 +7,37 @@ description: Prepare deduplicated Xray test publication plans and perform only s
 
 ## Shared contract
 
-Read [AGENTS.md](../../../AGENTS.md), [framework](../../../docs/agent-framework/README.md), and [approval policy](../../../docs/agent-framework/approval-policy.md) before acting. Current Phase 5D authorizes local framework implementation and isolated validation only; remote writes remain disabled. Discover available tool schemas; skill invocation grants no external permission.
+Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules, the [framework](../../../docs/agent-framework/README.md), and the [approval policy](../../../docs/agent-framework/approval-policy.md) before acting.
 
 ## Responsibilities
+
+### Chat-approved opt-in session
+
+This is the default for `qa xray` and `qa xray <STORY-KEY>`. Use `node --import tsx tools/agentic/chat-xray.ts load "<exact qa command>"` from the repository root. The helper selects the feature record, checks the accepted review against the test-design SHA-256, converts every reviewed case and reads the optional pipeline folder. A missing explicit Story record blocks that request. Stop on a pause or mismatched evidence. Verify the Jira Story identity, tenant, project, and intended link type with authorized reads.
+
+Read all inventory pages from `xray_search_tests` for the Story project, using the count of retrieved results as the next start. Inspect candidates matching a whole case-ID token, its exact title, or a saved Test key with `xray_get_test` and paginated `xray_get_test_coverage`. Save a sanitized packet in the Story run with `pages` (each with `total` and `results` containing `issueId`, `key`, `summary`) and `details` (same identity fields plus `manual`, `steps`, and `linked` to this Story). Run the helper with `duplicates "<exact qa command>" <packet-path>` to resolve all rows. Stop if equivalence or identity is ambiguous, if one key matches multiple cases, or if a candidate has incomplete readback.
+
+Show the helper's exact preview verbatim using `preview "<exact qa command>" <packet-path> <tenant-url> <read-only|write-enabled>`. Choose read-only if any create, resolve, or link schema is unavailable. In that mode the preview ends with the one-time Windows setting, restart, and rerun instructions. With those tools available in the owner's opted-in local session, the preview ends with “Reply OK to approve these exact Manual Test creations and Story links.” The owner's explicit `OK` to that preview authorizes only the listed operations. Recheck the same command, feature and design digest, Story, mapping, tools, and duplicate resolutions before dispatch. Obtain fresh approval if a decision or payload changes.
+
+Process one Test at a time. Call `xray_create_manual_test` only for an approved create. Call `xray_resolve_test_keys` with the issue ID returned by creation or verified by duplicate review, and verify the Manual type and exact steps. Save the mapping with `record <STORY-KEY> <case-id> <test-key>` before the approved link call. For skip, verify the existing link by readback. Verify each link against the same Story with coverage readback. On the first error or uncertain result, stop and report completed and pending rows. Reconcile by reads before a fresh preview. After all rows are verified, run `complete "<exact qa command>" <evidence-digest> <verified-links-JSON>`, passing the verified case-to-key map. Report one summary table with case, decision, Test key, and link outcome. Result import is outside this route.
+
+### Reviewed Manual Test batches
+
+For a separately authorized Phase 5E Windows demo, use the existing connector in signed-scope mode. Read `xray_get_local_demo_challenge` from the active reviewed Story and hand the complete challenge to the separate issuer. After scope approval and signature, pass the grant with `{ "activeStory": true }` to `xray_prepare_story_publication`. The connector calculates the SHA-256 digests. The operator's one native Allow covers the exact Manual Tests and links. Use the returned approval once and obtain status in the same session. Record operator identity as unverified and reconcile ambiguous results by reads. This phase authorizes local implementation only. See the [signed demo runbook](../../../docs/agent-framework/xray-personal-batch.md).
+
+The reusable active-Story route is implemented for isolated connector validation. Once Test Execution has passed and the exact Manual definitions and duplicate decisions are reviewed, the feature record can reference the schema 1.1.0 plan in `evidence.reviewedBatchPlan`. Store the plan under `artifacts/qa/<story-key>/`. The reference selects evidence and carries no publish authority. Leave existing feature records and completed artifacts intact.
+
+In a connector instance composed with an authorized active-Story route, use `xray_prepare_story_publication` with `{ "activeStory": true }`. The server reads the active record and calculates digests internally. Its one native form covers the exact Manual Test definitions, structured steps, and Story links. On Allow, the prepared result supplies the plan and the single-use approval ID. The same connector uses those values in `xray_publish_story` and the returned execution ID in `xray_get_story_publication`. Stop on declined approval, stale evidence, a pause, or any incomplete outcome. Report journaled Test identities and whether creation, linking, and end-to-end verification completed. An uncertain outcome requires separate read-only reconciliation.
+
+Phase 5D continues to disable live execution of this route. The persistent registration exposes the existing read tools. This local implementation requires a separately authorized connector composition before use against Jira or Xray. The opt-in pinned personal batch below remains a distinct path.
+
+Resolve the active Story via `qa/current.json` and its feature record. Stop on a user pause or an incomplete QA gate. Use the authorized tenant and environment, the current Jira Story identity and content digest, and the reviewed test design and traceability. Build a single Story publication plan with stable case IDs, preconditions, ordered action/data/result steps, and requirement references. Discover required project fields and the Test link type from the authorized connector. Never assume project, type, or reporter IDs from a prior story.
+
+For a request such as “Publish the approved Manual Tests for ABC-123,” resolve the requested Story and its reviewed cases using the existing QA evidence. Read the `manualTestBatch` settings in [qa/pipeline.json](../../../qa/pipeline.json). Use only the extracted `xray_website` connector registered in the trusted project's `.codex/config.toml`. Use authorized Jira reads for Story metadata. Read all candidate pages and relevant coverage. Reuse only verified equivalent Manual Tests, verify their IDs and expected links, and stop on ambiguity. Prepare the proposed plan locally and keep its fingerprint internal.
+
+For personal-batch validation, call `xray_website.xray_prepare_story_publication` in the credential-free `--personal-batch-probe` session with the synthetic fixture in the [runbook](../../../docs/agent-framework/xray-personal-batch.md). Treat Accept, Decline, and Cancel as validation results only. With `liveDispatchEnabled: false`, that batch route stops after read-only planning or probe validation. Keep the batch pending publication. If the configured connector or probe is unavailable, report the blocker.
+
+A future personal-demo trial requires a separately reviewed scope activation under the approval policy, an enabled QA route and a verified opt-in `xray_website` session scoped to the authorized batch. Recheck the plan, duplicates, Jira link metadata and journal before calling the connector's batch preparation once. Wait for the native form. Decline, cancel, missing approval, changed evidence, or expiry stops the batch. On Allow, use the connector-issued approval ID and the unchanged plan with the guarded publisher once. Verify each Test and link by readback, report created, reused, linked, skipped, or unresolved cases, and reconcile uncertainty without resending the batch. The trusted publisher retains its separate policy.
 
 Read MCP integration documentation. During Phase 2B document only; do not call preparation tools that persist demo approval state. In a later authorized phase inspect existing tests and complete paginated duplicate review, prepare local payloads and a human approval request. Do not propose publication until all local QA gates pass. Distinguish test creation, story linking and execution-result import as separately authorized capabilities. Never assume import is supported; no import tool is exposed now.
 
@@ -23,7 +51,7 @@ Local publication plan and exact candidate payloads; after approved publication,
 
 ## MCP tools or dependencies
 
-Existing Xray MCP read tools; guarded publication tools only after schema/capability verification and explicit approval. See [integration limits](../../../docs/agent-framework/mcp-integrations.md).
+Use Xray MCP read tools for evidence and the selected route's publication tools after verifying schemas, capabilities, and explicit approval. See [integration limits](../../../docs/agent-framework/mcp-integrations.md).
 
 ## Allowed autonomous actions
 
@@ -31,7 +59,7 @@ Read authorized tests/coverage and generate local publication proposals after pr
 
 ## Actions requiring human approval
 
-All Xray publication, issue linking and result import require explicit scope plus connector safeguards. Demo approval IDs are not human authorization.
+All Xray publication, issue linking and result import require explicit scope and the safeguards for the selected route. Use the exact chat preview for the opt-in route described above. Demo approval IDs are not human authorization.
 
 ## Validation requirements
 
@@ -54,5 +82,3 @@ Phase 6N adds the KAN-25 Checkpoint C personal-demo mode. Compile with `node nod
 Phase 6L adds the separate KAN-25 Checkpoint B personal-demo mode. Compile with `node node_modules/typescript/bin/tsc -p tsconfig.tools.json --noEmit false --outDir .test-results/phase6l`. Use `node .test-results/phase6l/tools/xray/local-demo.js preview-link-rest` for the exact Jira REST request. After separate live authorization, the operator uses `execute-link` in place of `preview-link-rest` and confirms the displayed REST fingerprint. The CLI uses `JIRA_BASE_URL`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` from the existing gitignored .env. Use `reconcile-link` for an uncertain attempt. Confirmation requires both Jira link direction and Xray coverage. Checkpoints C and D are still disabled.
 
 Phase 6I adds a KAN-25 Checkpoint A personal-demo entry point. From the repository root, compile with `node node_modules/typescript/bin/tsc -p tsconfig.tools.json --noEmit false --outDir .test-results/phase6i`, then use `node .test-results/phase6i/tools/xray/local-demo.js preview`. The operator runs `node .test-results/phase6i/tools/xray/local-demo.js execute` in their own interactive terminal only during a separately authorized live step and enters the exact displayed confirmation. This mode trusts the local Windows session and process. Its journal is under `artifacts/qa/automation-identities/journal`. After an ambiguous outcome, use the same command with `reconcile` in place of `execute`. Preserve the journal and review ambiguous or missing results before considering any retry. The general production executor and Checkpoints B, C and D remain disabled.
-
-Use tools/agentic contracts and story-specific artifacts/qa/<story-key>/<run-id>/ evidence. Roles run sequentially unless delegation is explicitly authorized; label same-session reviews as self-review. Read docs/agent-framework/phase5d-framework.md for state gates, stable identities and recovery. Feature Development owns unit/API tests; Playwright Automation owns browser tests; Test Design precedes implementation and reviews coverage afterward. Historical Phase 2B descriptions below do not grant current permission. Mode selection and editable approval JSON grant no authorization. Generic Test proposals use the repository-local identity registry; live Xray publication and GitHub delivery remain disabled.

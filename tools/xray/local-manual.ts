@@ -12,8 +12,10 @@ import type { JournalReservationRequest } from "../agentic/journal-reservation.j
 import type { TokenProvider } from "./clients/authentication.js";
 import type { XrayReadClient } from "./clients/index.js";
 import {
-  manualCaseId,
+  kan29ManualCaseId,
+  localManualCaseId,
   manualMutation,
+  manualStep,
   manualVariables,
   parseManualCase,
 } from "./manual-plan.js";
@@ -25,30 +27,81 @@ const artifact =
   "artifacts/qa/KAN-25/orchestration-demo-20261117-100046/test-cases.md";
 const origin = "https://xray.cloud.getxray.app";
 const tenant = "renudhamankar98.atlassian.net";
-const story = "KAN-25";
+const kan29Artifact =
+  "artifacts/qa/KAN-29/publication-manual-01/manual-tests.json";
+const kan29ApprovedDigest =
+  "sha256:dbf35d25704c33b64e040057d057e52be9fe3ab71e71b35d583d496acdc873a3";
 const projectKey = "KAN";
 const operation = "xray.test.create";
+function storyFor(caseId: string) {
+  return localManualCaseId.parse(caseId).startsWith("KAN-29-")
+    ? "KAN-29"
+    : "KAN-25";
+}
 const caseIdentity = (caseId: string) =>
-  "agentic-demo-website:manual:" + story + ":" + manualCaseId.parse(caseId);
+  "agentic-demo-website:manual:" + storyFor(caseId) + ":" + caseId;
 type Read = Pick<XrayReadClient, "searchTests" | "getManualTest">;
 type RemoteTest = NonNullable<Awaited<ReturnType<Read["getManualTest"]>>>;
 type Plan = Awaited<ReturnType<typeof manualPlan>>;
 
+const approvedCase = z
+  .object({
+    projectKey: z.literal("KAN"),
+    testCaseId: kan29ManualCaseId,
+    summary: z.string().min(1).max(255),
+    description: z.string().min(1),
+    steps: z.array(manualStep).min(1).max(100),
+  })
+  .strict();
+
 async function manualPlan(root: string, caseId: string) {
-  const source = within(root, artifact);
+  const story = storyFor(caseId);
+  const artifactPath = story === "KAN-29" ? kan29Artifact : artifact;
+  const source = within(root, artifactPath);
   await noSymlinks(root, source);
   const bytes = await readFile(source);
-  const scenario = parseManualCase(bytes.toString("utf8"), caseId);
   const sourceDigest = fingerprint(bytes);
+  const approved = story === "KAN-29" ? readApprovedCase() : undefined;
+  function readApprovedCase() {
+    if (sourceDigest !== kan29ApprovedDigest)
+      throw new Error("KAN29_APPROVED_MANUAL_MANIFEST_CHANGED");
+    const cases = z
+      .array(approvedCase)
+      .length(14)
+      .parse(JSON.parse(bytes.toString("utf8")));
+    const selected = cases.find((item) => item.testCaseId === caseId);
+    if (
+      new Set(cases.map((item) => item.testCaseId)).size !== 14 ||
+      !selected ||
+      !selected.summary.startsWith(caseId + ": ")
+    )
+      throw new Error("KAN29_APPROVED_MANUAL_CASE_INVALID");
+    return selected;
+  }
+  const scenario = approved
+    ? {
+        caseId,
+        title: approved.summary.slice(caseId.length + 2),
+        steps: approved.steps.map((step, index) => ({
+          number: index + 1,
+          ...step,
+        })),
+        description: approved.description,
+      }
+    : parseManualCase(bytes.toString("utf8"), caseId);
   const evidenceDigest = objectDigest(scenario);
   const identity = caseIdentity(caseId);
   const description = [
     "Manual case: " + identity,
     "Story: " + story,
-    "Preconditions and test data: " + scenario.preconditionsAndData,
-    "Requirements: " + scenario.requirements.join(", "),
-    "Acceptance criteria: " + scenario.acceptance.join(", "),
-    "Source: " + artifact,
+    ...("description" in scenario
+      ? [scenario.description]
+      : [
+          "Preconditions and test data: " + scenario.preconditionsAndData,
+          "Requirements: " + scenario.requirements.join(", "),
+          "Acceptance criteria: " + scenario.acceptance.join(", "),
+        ]),
+    "Source: " + artifactPath,
     "Source digest: " + sourceDigest,
   ].join("\n");
   const variables = manualVariables.parse({
@@ -300,7 +353,7 @@ export async function runLocalManual(
     tenant,
     projectKey,
     operation,
-    target: story,
+    target: review.story,
     automationIdentity: review.identity,
     payloadDigest,
     evidenceDigest,

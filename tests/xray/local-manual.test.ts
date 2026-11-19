@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
@@ -190,6 +190,24 @@ test("manual path refuses invalid approval and detects a renamed remote duplicat
     /POSSIBLE_DUPLICATE/,
   );
   assert.equal(state.posts, 0);
+});
+
+test("KAN-29 rejects altered evidence and refuses out-of-scope cases before dispatch", async (t) => {
+  const { journal, state, ports } = await fixture(t);
+  const directory = await mkdtemp(join(tmpdir(), "kan29-manual-evidence-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const manifest = join(directory, "artifacts/qa/KAN-29/publication-manual-01");
+  await mkdir(manifest, { recursive: true });
+  await writeFile(join(manifest, "manual-tests.json"), "[]");
+  await assert.rejects(
+    runLocalManual(directory, "KAN-29-TC-001", journal, ports),
+    /KAN29_APPROVED_MANUAL_MANIFEST_CHANGED/,
+  );
+  for (const other of ["KAN-29-TC-015", "KAN-30-TC-001"]) {
+    await assert.rejects(runLocalManual(directory, other, journal, ports));
+  }
+  assert.equal(state.posts, 0);
+  assert.deepEqual(await journal.latestEntries(), []);
 });
 
 test("manual reconciliation verifies a lost response with a unique exact candidate", async (t) => {

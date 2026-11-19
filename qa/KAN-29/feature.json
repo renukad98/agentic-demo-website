@@ -1,0 +1,69 @@
+{
+  "storyKey": "KAN-29",
+  "title": "Search Tasks by Title",
+  "stage": "executed",
+  "paused": false,
+  "completedStages": [
+    "story",
+    "requirements",
+    "designed",
+    "reviewed",
+    "branch-ready",
+    "implemented",
+    "automated",
+    "executed"
+  ],
+  "pendingStages": [
+    "published",
+    "in-review",
+    "done"
+  ],
+  "proposedBranch": "feature/KAN-29-search-tasks",
+  "nextCommand": "qa xray",
+  "evidence": {
+    "requirements": "artifacts/qa/KAN-29/requirements-20261118T121430Z/requirements.md",
+    "traceability": "artifacts/qa/KAN-29/test-design-02/traceability.csv",
+    "requirementsTraceability": "artifacts/qa/KAN-29/requirements-20261118T121430Z/traceability.csv",
+    "testDesign": "artifacts/qa/KAN-29/test-design-02/test-cases.md",
+    "testDesignReport": "artifacts/qa/KAN-29/test-design-02/run-report.md",
+    "previousTestReview": "artifacts/qa/KAN-29/test-review-01/review.md",
+    "testReview": "artifacts/qa/KAN-29/test-review-02/review.md",
+    "implementationReport": "artifacts/qa/KAN-29/implementation-01/run-report.md",
+    "automationReport": "artifacts/qa/KAN-29/automation-01/run-report.md",
+    "executionReport": "artifacts/qa/KAN-29/execution-01/run-report.md",
+    "executionRerunReport": "artifacts/qa/KAN-29/execution-02/run-report.md",
+    "previousPublicationPlan": "artifacts/qa/KAN-29/publication-01/publication-plan.md",
+    "publicationPlan": "artifacts/qa/KAN-29/publication-manual-01/publication-plan.md",
+    "manualTestCandidates": "artifacts/qa/KAN-29/publication-manual-01/manual-tests.json",
+    "manualTestDefinitionApproval": "artifacts/qa/KAN-29/publication-manual-01/definition-approval.md",
+    "manualTest001Confirmation": "artifacts/qa/KAN-29/publication-manual-01/KAN-29-TC-001-confirmation.md"
+  },
+  "openDecisions": [],
+  "verifiedRecords": {
+    "jiraStory": "KAN-29",
+    "localBranch": {
+      "name": "feature/KAN-29-search-tasks",
+      "baseCommit": "a9d8fd7a4a64386e7be50607cf8848878dceda5e",
+      "worktree": "kan-29-validation"
+    },
+    "xrayTests": [
+      {
+        "caseId": "KAN-29-TC-001",
+        "key": "KAN-30",
+        "issueId": "10070",
+        "type": "Manual",
+        "status": "Confirmed",
+        "stepCount": 2,
+        "requirementLinkVerified": false
+      }
+    ],
+    "xrayTestPlan": null,
+    "xrayTestExecution": null,
+    "pullRequest": null
+  },
+  "approvedDecisions": [
+    "Trim surrounding whitespace and treat whitespace-only input as clear.",
+    "Keep the existing empty-list message when the query is clear. Show No matching tasks found for a nonblank query with zero matches after a successful load.",
+    "Keep the query through task changes and list refreshes on the current page. Reset it on full page reload."
+  ]
+}

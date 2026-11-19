@@ -1,0 +1,11 @@
+# Project-local registration. Write tools register only when the owner opts in.
+[mcp_servers.xray_website]
+command = "node"
+args = ["--import", "tsx", "tools/xray-mcp/src/integrations/xray-mcp/server.ts"]
+env_vars = ["XRAY_ENABLE_WRITES"]
+enabled = true
+enabled_tools = ["xray_search_tests", "xray_get_test", "xray_get_test_coverage", "xray_create_manual_test", "xray_resolve_test_keys", "xray_link_test_to_story"]
+ 
+# Keep the inherited legacy connector unavailable in this project.
+[mcp_servers.xray]
+enabled = false

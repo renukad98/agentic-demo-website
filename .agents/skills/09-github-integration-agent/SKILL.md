@@ -7,7 +7,7 @@ description: Read GitHub context and prepare reviewable repository changes and P
 
 ## Shared contract
 
-Read [AGENTS.md](../../../AGENTS.md), [framework](../../../docs/agent-framework/README.md), and [approval policy](../../../docs/agent-framework/approval-policy.md) before acting. Current Phase 5D authorizes local framework implementation and isolated validation only; remote writes remain disabled. Discover available tool schemas; skill invocation grants no external permission.
+Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules, the [framework](../../../docs/agent-framework/README.md), and the [approval policy](../../../docs/agent-framework/approval-policy.md) before acting.
 
 ## Responsibilities
 
@@ -40,7 +40,3 @@ Check repository/base/head identity, exact approved file scope, absence of secre
 ## Error handling
 
 On conflicts or uncertain writes stop and report; do not reset user work, force-push or retry PR creation blindly. Missing write capability does not justify a browser/API bypass. Preserve sanitized evidence; never expose credentials in diagnostics.
-
-## Reusable Phase 5D contract
-
-Use tools/agentic contracts and story-specific artifacts/qa/<story-key>/<run-id>/ evidence. Roles run sequentially unless delegation is explicitly authorized; label same-session reviews as self-review. Read docs/agent-framework/phase5d-framework.md for state gates, stable identities and recovery. Feature Development owns unit/API tests; Playwright Automation owns browser tests; Test Design precedes implementation and reviews coverage afterward. Historical Phase 2B descriptions below do not grant current permission. Mode selection and editable approval JSON grant no authorization. Generic Test proposals use the repository-local identity registry; live Xray publication and GitHub delivery remain disabled.

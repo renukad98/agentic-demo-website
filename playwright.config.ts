@@ -10,6 +10,13 @@ export default defineConfig({
   timeout: 30000,
   outputDir: ".test-results",
   reporter: [["list"], ["json", { outputFile: ".test-results/results.json" }]],
-  use: { trace: "off", screenshot: "off", video: "off" },
+  use: {
+  trace: "off",
+  screenshot: "off",
+  video: "off",
+  launchOptions: {
+    slowMo: 1500,
+  },
+},
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });

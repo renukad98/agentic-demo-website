@@ -24,7 +24,7 @@ export function localLinkPreview(
     (entry) =>
       entry.tenant === tenant &&
       entry.projectKey === "KAN" &&
-      entry.storyKey === "KAN-25" &&
+      entry.storyKey === target.story &&
       entry.operation === "xray.test.create" &&
       entry.automationIdentity === target.identity,
   );
@@ -44,14 +44,14 @@ export function localLinkPreview(
       (entry) =>
         entry.tenant === tenant &&
         entry.projectKey === "KAN" &&
-        entry.storyKey === "KAN-25" &&
+        entry.storyKey === target.story &&
         entry.operation === "jira.test.link" &&
         (entry.remoteTestKey === testKey || !entry.remoteTestKey),
     )
   )
     throw new Error("CHECKPOINT_B_ALREADY_JOURNALED");
   const proposal = linkProposal(
-    "KAN-25",
+    target.story,
     creation.remoteTestKey,
     linkType,
     creation.evidenceDigest,

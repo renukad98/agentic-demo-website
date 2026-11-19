@@ -8,7 +8,8 @@ dist/
 .netrc
 .docker/config.json
 .aws/
-.codex/
+.codex/*
+!.codex/config.toml
 .mcp.json
 *.pem
 *.key

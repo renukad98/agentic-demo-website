@@ -4,6 +4,8 @@ test("TM-TC-01/03/04/05/27: create, edit completed task, complete, reopen and co
   page,
   app,
 }) => {
+  // Five lifecycle cases share one session, and Playwright's configured slowMo adds up across the browser actions.
+  test.slow();
   await signIn(page, app.users[0]!);
   await page.getByLabel("Task title", { exact: true }).fill("  Plan release  ");
   await page

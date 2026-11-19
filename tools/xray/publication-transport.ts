@@ -18,7 +18,11 @@ import {
 } from "./clients/http.js";
 import type { TokenProvider } from "./clients/authentication.js";
 import { createProductionWriteExecutor } from "./write-integration.js";
-import { manualMutation, manualVariables } from "./manual-plan.js";
+import {
+  kan29ManualCaseId,
+  manualMutation,
+  manualVariables,
+} from "./manual-plan.js";
 import {
   takeLocalCreationAttempt,
   takeLocalExecutionAttempt,
@@ -322,11 +326,19 @@ export class XrayPublicationTransport {
     const proposal = proposalSchema.parse(structuredClone(raw));
     const payload = proposal.payload;
     const variables = manualVariables.parse(payload.variables);
+    const kan29Case = variables.jira.fields.summary.split(": ", 1)[0];
+    const allowedStory =
+      proposal.storyKey === "KAN-25" ||
+      (proposal.storyKey === "KAN-29" &&
+        kan29ManualCaseId.safeParse(kan29Case).success &&
+        variables.jira.fields.description.startsWith(
+          `Manual case: agentic-demo-website:manual:KAN-29:${kan29Case}\nStory: KAN-29\n`,
+        ));
     if (
       this.#base !== "https://xray.cloud.getxray.app" ||
       proposal.operation !== "xray.test.create" ||
-      proposal.storyKey !== "KAN-25" ||
-      proposal.target !== "KAN-25" ||
+      !allowedStory ||
+      proposal.target !== proposal.storyKey ||
       payload.mutation !== "createTest" ||
       payload.query !== manualMutation ||
       proposal.payloadDigest !==
