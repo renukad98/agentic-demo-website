@@ -1,6 +1,7 @@
+import { taskCaseDetails } from "./story-cases.js";
 import { test, expect, signIn } from "./fixtures.js";
 
-test("TM-TC-05/20: keyboard create, dialog cancellation/focus and narrow layout", async ({
+test("TM-TC-05/20: keyboard create, dialog cancellation/focus and narrow layout", taskCaseDetails("TM-TC-05/20:"), async ({
   page,
   app,
 }) => {

@@ -1,6 +1,7 @@
+import { taskCaseDetails } from "./story-cases.js";
 import { test, expect, signIn, createTask } from "./fixtures.js";
 
-test("TM-TC-20/22: loading and failure states support explicit retry", async ({
+test("TM-TC-20/22: loading and failure states support explicit retry", taskCaseDetails("TM-TC-20/22:"), async ({
   page,
   app,
 }) => {
@@ -36,7 +37,7 @@ test("TM-TC-20/22: loading and failure states support explicit retry", async ({
   await expect(page.getByText("No tasks yet.", { exact: false })).toBeVisible();
 });
 
-test("TM-TC-22: Create stays disabled in flight and does not duplicate requests", async ({
+test("TM-TC-22: Create stays disabled in flight and does not duplicate requests", taskCaseDetails("TM-TC-22:"), async ({
   page,
   app,
 }) => {
@@ -65,7 +66,7 @@ test("TM-TC-22: Create stays disabled in flight and does not duplicate requests"
   expect(posts).toBe(1);
 });
 
-test("TM-TC-22: uncertain committed creation gives guidance, and expired sessions clear tasks", async ({
+test("TM-TC-22: uncertain committed creation gives guidance, and expired sessions clear tasks", taskCaseDetails("TM-TC-22:"), async ({
   page,
   app,
   context,
@@ -104,7 +105,7 @@ test("TM-TC-22: uncertain committed creation gives guidance, and expired session
   await expect(page.locator("#task-workspace")).not.toBeVisible();
 });
 
-test("TM-TC-22: malformed success after committed create requires reconciliation", async ({
+test("TM-TC-22: malformed success after committed create requires reconciliation", taskCaseDetails("TM-TC-22:"), async ({
   page,
   app,
 }) => {
@@ -136,7 +137,7 @@ test("TM-TC-22: malformed success after committed create requires reconciliation
   await expect(page.getByRole("article")).toHaveCount(1);
 });
 
-test("TM-TC-22: expired session on cached-CSRF mutation clears data without replay", async ({
+test("TM-TC-22: expired session on cached-CSRF mutation clears data without replay", taskCaseDetails("TM-TC-22:"), async ({
   page,
   app,
   context,
