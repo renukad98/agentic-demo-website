@@ -104,11 +104,14 @@ export class LocalDemoGrantSession {
   }
 
   private check(grant: LocalDemoScopeGrant, plan: StoryPlan, requireFresh: boolean): number {
-    const { grantId: _, issuedAt, expiresAt, ...scope } = grant.claims;
+    const { issuedAt, expiresAt, ...scope } = grant.claims;
     const now = this.now();
     if (issuedAt > now || expiresAt <= issuedAt || expiresAt - issuedAt > MAX_GRANT_MS ||
         (requireFresh && expiresAt <= now) ||
-        canonicalizeJson(scope) !== canonicalizeJson(localDemoScopeForPlan(this.session, plan))) {
+        canonicalizeJson(scope) !== canonicalizeJson({
+          ...localDemoScopeForPlan(this.session, plan),
+          grantId: grant.claims.grantId,
+        })) {
       throw new Error('Local demo scope grant is expired or does not match this session and batch.');
     }
     return expiresAt;

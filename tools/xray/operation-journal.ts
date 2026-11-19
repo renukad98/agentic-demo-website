@@ -562,6 +562,7 @@ export class OperationJournal {
       renamed = true;
       owner.seen = true;
       let directory;
+      let syncFailure: { error: unknown } | undefined;
       try {
         phase = "directory-sync";
         directory = await fs.open(owner.directory, "r");
@@ -574,15 +575,17 @@ export class OperationJournal {
           )
         )
           this.directorySync = "unsupported-or-denied";
-        else throw error;
-      } finally {
-        try {
-          await directory?.close();
-        } catch (error) {
+        else syncFailure = { error };
+      }
+      try {
+        await directory?.close();
+      } catch (error) {
+        if (!syncFailure) {
           phase = "directory-close";
           throw error;
         }
       }
+      if (syncFailure) throw syncFailure.error;
     } catch (error) {
       if (renameStarted) owner.blocked = true;
       const rawCode = (error as NodeJS.ErrnoException).code;
