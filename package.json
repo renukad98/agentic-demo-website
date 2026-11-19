@@ -14,6 +14,7 @@
     "format:check": "prettier --check .",
     "test": "tsx --test tests/*.test.ts",
     "test:e2e": "playwright test",
+    "xray:import-by-story": "tsx tools/xray/import-by-story-cli.ts",
     "test:framework": "tsx --test tests/agentic/*.test.ts tests/xray/*.test.ts",
     "typecheck:tools": "tsc -p tsconfig.tools.json --noEmit",
     "seed": "tsx src/seed.ts"

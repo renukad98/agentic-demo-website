@@ -22,5 +22,6 @@
     "testReview": "artifacts/qa/KAN-25/qa-xray-01/review.md"
   },
   "title": "Task Management",
+  "testPlanKey": "KAN-35",
   "nextCommand": "qa branch"
 }

@@ -9,6 +9,8 @@ description: Create repeatable Playwright browser tests for reviewed cases in an
 
 Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules, the [framework](../../../docs/agent-framework/README.md), and the [approval policy](../../../docs/agent-framework/approval-policy.md) before acting.
 
+Annotate browser tests with their owning Story and case IDs. Derive published Xray keys from the Story mapping. The JUnit reporter preserves the outcome for each case and identifies unmapped cases as not published. The local report is `.test-results/xray-junit.xml`.
+
 ## Responsibilities
 
 Inspect the authorized UI through Playwright MCP when useful. Implement persisted tests using stable accessible locators, observable assertions and isolated contexts/data; avoid arbitrary sleeps. Map test titles to case IDs. Verify runner availability before claiming executability. The repository has an installed Playwright runner, playwright.config.ts, Chromium project and isolated fixtures. Verify browser availability without installing binaries. MCP navigation alone is not a regression suite.

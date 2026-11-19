@@ -12,6 +12,12 @@ Phase 5E-C1 local enforcement: external operations require the new fail-closed T
 
 Phase 5D authorizes local reusable framework implementation, instruction updates and isolated validation. Jira/Xray writes, commits, pushes, PRs and external publication remain disabled. A future feature request must explicitly authorize implementation; naming a planned feature does not authorize it. The default ApprovalProvider denies all and editable approval JSON is never trusted authority. See [framework implementation](phase5d-framework.md). This restriction applies except to the route described in [Opt-in Agent 08 Manual Tests and Story links](#opt-in-agent-08-manual-tests-and-story-links). For that route, in an opted-in owner local session subject to applicable managed controls, the owner's explicit `OK` on the exact chat preview authorizes only the listed Manual Test creations and Story links.
 
+## Per-Story Playwright results import
+
+The results route requires separate authorization under the repository's managed controls. The owner must approve the exact dry-run preview, including the Jira tenant, endpoint, project, Test Plan, XML payload and SHA-256 digest. A live CLI invocation requires `XRAY_ENABLE_WRITES=true` and the matching `--confirm` digest. In chat, only the owner's explicit `OK` on the latest exact preview authorizes dispatch through an approved connector tool. A CLI invocation without confirmation only previews. Changes to the target or payload require a fresh preview and approval.
+
+Only results mapped to published Test keys are eligible. Done or paused Stories and Stories without a Test Plan are skipped. Record the returned key as `testExecutionKey` in the Story feature record. Stop at the first import error and reconcile any pending dispatch by read before attempting another import. The results route excludes CI, Test Plan creation, plan membership edits and other Jira writes.
+
 ## Autonomous actions
 
 KAN-29 Manual Test previews may use the existing guarded local publisher with the pinned reviewed manifest. Phase 5D write restrictions continue to apply until a separately authorized live scope is established. Any later KAN-29 exception is limited to one exact Manual Test creation per interactive approval. Linking, Test Plans, executions, result imports, and other stories are outside that exception.

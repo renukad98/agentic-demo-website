@@ -49,6 +49,7 @@
         "requireHumanApproval": true
       }
     },
+    "qa xray-results": { "skill": "xray-test-publisher-agent", "approval": "exact-chat-preview" },
     "qa pr": { "skill": "github-integration-agent", "stage": "in-review" },
     "qa close": { "skill": "qa-orchestrator", "stage": "done" },
     "qa status": { "skill": "qa-orchestrator", "readOnly": true },
