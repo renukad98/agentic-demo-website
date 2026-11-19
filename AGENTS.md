@@ -1,5 +1,9 @@
 # Agentic development and QA instructions
 
+## One-time GitHub delivery exception
+
+The repository owner authorizes staging and committing only the removal of the `kan-29-validation` Git link and this policy entry on `chore/qa-next-handoffs`, and the five already-staged KAN-29 search files on `feature/KAN-29-search-tasks`. The local validation worktree and its files must be preserved. The resulting branch tips may be delivered once to their identically named branches on `origin` by normal, non-force pushes. This exception expires when those pushes are verified. It authorizes no merge, history rewrite, pull request, Jira or Xray write, or other change to Phase 5D/5E permissions. KAN-29 and KAN-30 remain paused.
+
 ## Phase 5E local Windows demo implementation
 
 Local implementation, policy documentation, and synthetic tests for the signed-scope Windows stdio demo are authorized. The default persistent connector remains read-only. Live activation requires separate applicable managed review and authorization for one exact reviewed Story batch and MCP session. Only Manual Test creation and links to that same Story are eligible. The grant issuer signs the scope outside the connector, then one native Allow confirms the exact batch. Record operator identity as unverified. This implementation approval authorizes no live grant, connector activation, or remote write. All other Phase 5D limits and paused Stories remain in effect.
