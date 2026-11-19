@@ -12,7 +12,6 @@ import { writeOperationId } from "./write-integration.js";
 
 const tenant = "renudhamankar98.atlassian.net";
 const origin = "https://" + tenant;
-const story = "KAN-25";
 const operation = "jira.test.link";
 const type = {
   id: "10037",
@@ -34,11 +33,12 @@ const issue = z.object({
 });
 
 function restReview(reviewFingerprint: string, testKey: LocalLinkTarget) {
-  const testId = localLinkTargets[testKey].issueId;
+  const { issueId: testId, story, storyIssueId } = localLinkTargets[testKey];
   const display = {
     operation,
     tenant,
     story,
+    ...(testKey === "KAN-30" ? { storyIssueId } : {}),
     testKey,
     testIssueId: testId,
     direction: testKey + " tests " + story,
@@ -83,7 +83,7 @@ export async function runRestLink(
   testKey: LocalLinkTarget = "KAN-26",
 ) {
   const target = localLinkTargets[testKey];
-  const testId = target.issueId;
+  const { issueId: testId, story } = target;
   if (
     ports.fetch === globalThis.fetch &&
     ports.confirm &&
@@ -171,7 +171,7 @@ export async function runRestLink(
       test = issue.parse(testRaw);
     if (
       requirement.key !== story ||
-      requirement.id !== "10065" ||
+      requirement.id !== target.storyIssueId ||
       requirement.fields.issuetype.id !== "10009" ||
       test.key !== testKey ||
       test.id !== testId ||
@@ -194,11 +194,11 @@ export async function runRestLink(
     if (target.type === "Manual") {
       const manual = await ports.xray.getManualTest?.(testId);
       if (
-        xrayTest.steps?.length !== 9 ||
+        xrayTest.steps?.length !== target.stepCount ||
         manual?.issueId !== testId ||
         manual.jira.key !== testKey ||
         manual.testType.name !== "Manual" ||
-        manual.steps?.length !== 9 ||
+        manual.steps?.length !== target.stepCount ||
         !manual.jira.description
           ?.split(/\r?\n/)
           .includes("Manual case: " + target.identity)
@@ -248,7 +248,7 @@ export async function runRestLink(
       return { status: "ALREADY_JOURNALED" };
     if (
       !["Attempted", "Uncertain"].includes(prior.status) ||
-      (testKey === "KAN-28" &&
+      (target.type === "Manual" &&
         (prior.payloadDigest !== objectDigest(review.request) ||
           (await journal.reservationFingerprint(prior.operationId)) !==
             review.fingerprint)) ||

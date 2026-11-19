@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 import { z } from "zod";
 import {
   operations,
@@ -498,6 +499,22 @@ export class OperationJournal {
       return empty();
     }
   }
+  private async replacementSnapshot(path: string): Promise<string | null> {
+    let before;
+    try {
+      before = await fs.lstat(path, { bigint: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw error;
+    }
+    if (!before.isFile() || before.ino === 0n) throw new Error("JOURNAL_FILE_ID_UNAVAILABLE");
+    const fingerprint = (stat: typeof before) =>
+      [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(":");
+    const bytes = await fs.readFile(path);
+    const after = await fs.lstat(path, { bigint: true });
+    if (fingerprint(before) !== fingerprint(after)) throw new Error("JOURNAL_FILE_CHANGED");
+    return fingerprint(after) + ":" + createHash("sha256").update(bytes).digest("hex");
+  }
   private async replace(owner: Owner, document: Document) {
     validateDocument(document);
     const path = within(owner.directory, "operations.json"),
@@ -506,6 +523,7 @@ export class OperationJournal {
         "operations.json.tmp-" + randomUUID(),
       );
     await noSymlinks(owner.root, path);
+    let phase = "temporary-write";
     let created = false,
       renamed = false,
       renameStarted = false;
@@ -519,12 +537,33 @@ export class OperationJournal {
         await file.close();
       }
       await this.acquire(owner);
+      const windows = process.platform === "win32";
+      const destinationBefore = windows ? await this.replacementSnapshot(path) : null;
+      const temporaryBefore = windows ? await this.replacementSnapshot(temporary) : null;
       renameStarted = true;
-      await fs.rename(temporary, path);
+      phase = "rename";
+      for (const wait of [0, 20, 60, 140]) {
+        if (wait) {
+          await delay(wait);
+          await this.acquire(owner);
+          if (!temporaryBefore ||
+              await this.replacementSnapshot(temporary) !== temporaryBefore ||
+              await this.replacementSnapshot(path) !== destinationBefore) {
+            throw new Error("JOURNAL_REPLACEMENT_STATE_CHANGED");
+          }
+        }
+        try {
+          await fs.rename(temporary, path);
+          break;
+        } catch (error) {
+          if (!windows || wait === 140 || (error as NodeJS.ErrnoException).code !== "EPERM") throw error;
+        }
+      }
       renamed = true;
       owner.seen = true;
       let directory;
       try {
+        phase = "directory-sync";
         directory = await fs.open(owner.directory, "r");
         await directory.sync();
         this.directorySync = "completed";
@@ -537,14 +576,22 @@ export class OperationJournal {
           this.directorySync = "unsupported-or-denied";
         else throw error;
       } finally {
-        await directory?.close();
+        try {
+          await directory?.close();
+        } catch (error) {
+          phase = "directory-close";
+          throw error;
+        }
       }
-    } catch {
+    } catch (error) {
       if (renameStarted) owner.blocked = true;
+      const rawCode = (error as NodeJS.ErrnoException).code;
+      const code = typeof rawCode === "string" && /^[A-Z][A-Z0-9_]{0,31}$/.test(rawCode)
+        ? rawCode : "UNKNOWN";
       throw new Error(
-        renameStarted
+        (renameStarted
           ? "JOURNAL_REPLACEMENT_UNCERTAIN_RECONCILE"
-          : "JOURNAL_WRITE_FAILED",
+          : "JOURNAL_WRITE_FAILED") + " [" + phase + ":" + code + "]",
       );
     } finally {
       if (created && !renamed)
@@ -607,6 +654,14 @@ export class OperationJournal {
       const consumption = document.consumptions.find(
         (c) => c.operationId === copied.operationId,
       );
+      const kan29Link =
+        copied.operation === "jira.test.link" &&
+        consumption?.request.target === localLinkTargets["KAN-30"].story &&
+        consumption.request.testKey === "KAN-30" &&
+        consumption.request.testIssueId ===
+          localLinkTargets["KAN-30"].issueId &&
+        consumption.request.automationIdentity ===
+          localLinkTargets["KAN-30"].identity;
       if (copied.status === "Attempted" && consumption?.authority)
         throw new Error("PRODUCTION_AUTHORITY_EXECUTION_DISABLED");
       if (
@@ -619,6 +674,7 @@ export class OperationJournal {
           consumption?.request.executorPrincipal !== "windows-local-demo" ||
           consumption.request.operation !== copied.operation ||
           (copied.operation !== "xray.test.create" &&
+            !kan29Link &&
             (consumption.request.testKey !== "KAN-26" ||
               consumption.request.testIssueId !== "10066") &&
             !(
@@ -636,7 +692,15 @@ export class OperationJournal {
           consumption.consumptionId !== copied.approvalConsumptionId ||
           consumption.request.payloadDigest !== copied.payloadDigest ||
           consumption.approvalId !== copied.approvalReference ||
-          consumption.request.target !== "KAN-25" ||
+          (consumption.request.target !== "KAN-25" &&
+            !kan29Link &&
+            !(
+              copied.operation === "xray.test.create" &&
+              consumption.request.target === "KAN-29" &&
+              /^agentic-demo-website:manual:KAN-29:KAN-29-TC-0(?:0[1-9]|1[0-4])$/.test(
+                consumption.request.automationIdentity ?? "",
+              )
+            )) ||
           consumption.request.projectKey !== "KAN" ||
           consumption.request.tenant !== "renudhamankar98.atlassian.net" ||
           consumption.request.authorityEpoch !== "local-demo-v1")
@@ -673,25 +737,34 @@ export class OperationJournal {
       copiedPayload = structuredClone(payload);
     if (request.payloadDigest !== objectDigest(copiedPayload))
       throw new Error("PAYLOAD_BINDING_MISMATCH");
-    const manualLink =
+    const manualLinkTarget =
       request.operation === "jira.test.link" &&
       request.executorPrincipal === "windows-local-demo" &&
-      request.testKey === "KAN-28";
+      (request.testKey === "KAN-28" || request.testKey === "KAN-30")
+        ? localLinkTargets[request.testKey]
+        : undefined;
     if (
-      manualLink &&
+      request.operation === "jira.test.link" &&
+      request.executorPrincipal === "windows-local-demo" &&
+      request.target === "KAN-29" &&
+      request.testKey !== "KAN-30"
+    )
+      throw new Error("MANUAL_LINK_RESERVATION_MISMATCH");
+    if (
+      manualLinkTarget &&
       (request.tenant !== "renudhamankar98.atlassian.net" ||
         request.projectKey !== "KAN" ||
-        request.target !== "KAN-25" ||
-        request.testIssueId !== localLinkTargets["KAN-28"].issueId ||
-        request.automationIdentity !== localLinkTargets["KAN-28"].identity ||
+        request.target !== manualLinkTarget.story ||
+        request.testIssueId !== manualLinkTarget.issueId ||
+        request.automationIdentity !== manualLinkTarget.identity ||
         request.payloadDigest !==
           objectDigest({
             method: "POST",
             url: "https://renudhamankar98.atlassian.net/rest/api/3/issueLink",
             body: {
               type: { id: "10037" },
-              inwardIssue: { key: "KAN-28" },
-              outwardIssue: { key: "KAN-25" },
+              inwardIssue: { key: request.testKey },
+              outwardIssue: { key: manualLinkTarget.story },
             },
           }))
     )
@@ -735,7 +808,7 @@ export class OperationJournal {
             e.status === "Confirmed" &&
             e.remoteIds.includes(request.testIssueId!) &&
             e.remoteTestKey === request.testKey &&
-            (!manualLink ||
+            (!manualLinkTarget ||
               (e.storyKey === request.target &&
                 e.remoteIds.length === 1 &&
                 e.sourceDigest === request.sourceDigest &&

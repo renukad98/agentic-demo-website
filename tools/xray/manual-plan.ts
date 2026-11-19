@@ -3,6 +3,10 @@ import { z } from "zod";
 export const manualCaseId = z
   .string()
   .regex(/^TM-TC-(?:0[1-9]|1[0-9]|2[0-8])$/);
+export const kan29ManualCaseId = z
+  .string()
+  .regex(/^KAN-29-TC-0(?:0[1-9]|1[0-4])$/);
+export const localManualCaseId = z.union([manualCaseId, kan29ManualCaseId]);
 const text = z.string().trim().min(1);
 export const manualStep = z
   .object({ action: text, data: text, result: text })

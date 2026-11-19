@@ -12,7 +12,7 @@ import { XrayHttpReadTransport } from "./clients/transport.js";
 import { inspectGenericCreationResponse } from "./executor-preparation.js";
 import { IdentityRegistry, identityKey, verifyBinding } from "./identity.js";
 import { localLinkPreview } from "./local-link-preview.js";
-import { localLinkTarget } from "./local-link-target.js";
+import { localLinkTarget, localLinkTargets } from "./local-link-target.js";
 import { previewLocalExecution } from "./local-execution-preview.js";
 import { previewLocalImport } from "./local-import-preview.js";
 import { reconcileLocalImport, runLocalImport } from "./local-import.js";
@@ -21,7 +21,7 @@ import {
   reconcileLocalManual,
   runLocalManual,
 } from "./local-manual.js";
-import { manualCaseId } from "./manual-plan.js";
+import { localManualCaseId } from "./manual-plan.js";
 import {
   reconcileLocalExecution,
   runLocalExecution,
@@ -359,7 +359,7 @@ async function main() {
       ].includes(mode ?? ""))
   )
     throw new Error("INVALID_CHECKPOINT_COMMAND");
-  const caseId = manualMode ? manualCaseId.parse(extra[0]) : undefined;
+  const caseId = manualMode ? localManualCaseId.parse(extra[0]) : undefined;
   const linkTarget = linkMode ? localLinkTarget(extra[0]) : "KAN-26";
   const root = process.cwd();
   if (
@@ -556,7 +556,13 @@ async function main() {
           confirm:
             mode === "execute-link"
               ? (preview) =>
-                  terminalApproval(preview, "link " + linkTarget + " to KAN-25")
+                  terminalApproval(
+                    preview,
+                    "link " +
+                      linkTarget +
+                      " to " +
+                      localLinkTargets[linkTarget].story,
+                  )
               : undefined,
           previewOnly: mode === "preview-link-rest",
         },

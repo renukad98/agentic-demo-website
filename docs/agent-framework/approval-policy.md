@@ -6,9 +6,25 @@ Phase 5D authorizes local reusable framework implementation, instruction updates
 
 ## Autonomous actions
 
+KAN-29 Manual Test previews may use the existing guarded local publisher with the pinned reviewed manifest. Phase 5D write restrictions continue to apply until a separately authorized live scope is established. Any later KAN-29 exception is limited to one exact Manual Test creation per interactive approval. Linking, Test Plans, executions, result imports, and other stories are outside that exception.
+
 Read authorized stories, requirements, repository metadata and existing Xray tests; inspect source; produce local requirements, scenarios, automation and reports; implement locally approved features with tests; run isolated non-destructive validation. Browser testing must target an authorized local/test environment with isolated data, not live user accounts. A tool described as a preview may still store approval state; inspect its behavior before use.
 
 ## Approval steps for a later phase
+
+### Controlled Agent 08 Manual Test batches
+
+Phase 5E adds local code for a separately activated Windows stdio demo. The default registration remains read-only. A future demo activation must pass applicable managed review and use a public Ed25519 issuer key provisioned outside the repository. The independent issuer approves and signs exactly one scope challenge, bound to the Jira tenant, Xray origin, project, Story key and issue ID, operation set, canonical plan and payload digests, expiry and fresh MCP session nonce. The private key stays with the issuer. This policy documents the implementation and grants no live authorization.
+
+The grant permits preparation in the same session. One native Allow approves the exact Manual Test creations and Jira Story links. The server rechecks grant, QA evidence, duplicates, and journal state before dispatch and consumes the approval once. Its expiry cannot exceed the grant expiry. The approval and journal audit label operator identity as unverified. Windows usernames, environment variables, and form responses are never authenticated human identities. This path is restricted to a private demo workstation and designated demo tenant. Other publication operations keep their own gates.
+
+The reusable active-Story connector route resolves `evidence.reviewedBatchPlan` from the active feature and computes the plan digest internally. It is validated with mocked transports in Phase 5D. The feature record and its plan reference are evidence inputs. A separately authorized connector composition must enforce tenant, project, Story, operator, and expiry scope before native approval and before dispatch. The permanent connector stays read-only during Phase 5D.
+
+A future live activation requires a separately reviewed repository scope change for one Jira tenant, project, Story, reviewed plan path and canonical SHA-256 digest. Record the exact Manual Tests and Story links, the authorized operator and the expiry or end condition. Keep the dispatch gate disabled during Phase 5D. A saved batch candidate, owner request or synthetic confirmation cannot activate the gate. Any managed restriction or automatic-review rejection stops activation.
+
+After an approved activation, use a temporary session scoped to the approved batch and keep the permanent MCP registration read-only. Require fresh duplicate, Story and link metadata, exact fingerprint and execution-journal checks. Show the exact evidence-backed Manual Test steps, test data, expected results and proposed links in the native confirmation. Only the operator's native Allow authorizes a single dispatch of that exact batch. Fail closed on changed evidence, missing or expired approval, or an uncertain journal state. Verify outcomes by readback and reconcile ambiguous results before considering a retry.
+
+For a reviewed Manual Test batch, one authenticated Codex Chat `OK` can explicitly authorize all listed creates and links to one Jira Story. Display the exact batch and ask “Publish and link these Xray Tests? Reply OK.” The trusted host binds the latest reply to the tenant, project, Story, evidence, candidate dispositions and payload fingerprint, checks live scope and expiration, and consumes it once. Each create and link still uses the connector's approval and journal protections. This workflow adds no live authorization by itself. Existing interactive entry points and all other write scopes retain their existing gates. Stop on changed inputs, unexpected operations, or ambiguous recovery. Never use a local file or connector demo token as the human approval.
 
 1. Complete local work and all QA gates before proposing Xray/GitHub changes. Prepare exact payloads or a local PR body and exact diff/file scope. Review duplicate candidates and sanitize evidence.
 2. Produce `approval-request.md` from the template, identifying the operation, service, project/repository, payload revision/hash, source revision, QA evidence, side effects, scope and recovery limits. Show the user the concrete content.
