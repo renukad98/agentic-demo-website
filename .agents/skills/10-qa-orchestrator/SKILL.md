@@ -15,6 +15,8 @@ Use the active feature record and existing command map for routine sequential ha
 
 ## Inputs
 
+When accepted design review is complete and Manual Test publication is pending, `qa next` recommends `qa xray` before the implementation handoff. Apply the pause policy first. Publication can complete independently of branch preparation, implementation, automation, and execution. Resolve subsequent work from the first pending stage, even if the latest recorded stage is `published`. Full local readiness still gates GitHub delivery and the separate batch routes.
+
 For a separately authorized Phase 5E Windows demo, hand the active Story's reviewed batch to Agent 08. Require the signed session grant and one native approval, then record the execution ID, actual Test keys, verification status, and unverified operator identity. A stopped execution remains pending publication. Phase 5E local implementation approval does not activate the demo.
 
 For a reviewed Manual Test batch, verify local readiness and record the reviewed plan reference as `evidence.reviewedBatchPlan` on the active feature. Agent 08 can resolve that reference through the mock-validated active-Story connector route. Once live scope and the connector are separately authorized, use its single native form for the exact create-and-link operations. Advance to `published` only after the connector reports `complete` and returns verified Test keys for the selected cases. Record the execution ID and case-to-Test mapping. Keep stopped or uncertain batches pending and hand them back to Agent 08 for read-only reconciliation. A feature record grants no live permission, and Phase 5D keeps this handoff local.

@@ -57,7 +57,7 @@ Use stable IDs such as `<story>-REQ-001` and `<story>-TC-001`, preserving them t
 
 ## Local completion gate
 
-Before suggesting external publication: all in-scope requirements resolved, implementation and automated tests present, reviewed cases accepted, Playwright automation persisted and run, existing regression checks passed, requirement mappings complete, failures analyzed, and no required check blocked/skipped/unrun. Evidence must match the current source and test revision. A failed gate returns to its owner. Record limitations honestly; a human may revise scope explicitly, but cannot turn an unrun check into a pass.
+Before proposing GitHub delivery or using the separate Xray batch routes, require resolved requirements, implementation and automated tests, accepted review, persisted and executed Playwright tests, passing regression checks, completed mappings, and failure analysis. The default `qa xray [STORY-KEY]` chat-approved route may publish Manual Test definitions and same-Story links after accepted design review. The feature record's `published` stage records completion of that publication while its pending stages continue to track development and execution.
 
 External stages are separate optional approval gates. They cannot run in Phase 2B. If any stage is declined, unsupported or blocked, retain a local-ready report and mark downstream stages pending; do not claim the full workflow completed. See [MCP integrations](mcp-integrations.md), [approval workflow](approval-policy.md), and [Phase 2B validation](validation.md).
 

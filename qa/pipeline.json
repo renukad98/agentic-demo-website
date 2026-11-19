@@ -30,6 +30,11 @@
     "qa xray": {
       "skill": "xray-test-publisher-agent",
       "stage": "published",
+      "chatManualTests": {
+        "connector": "xray_website",
+        "approval": "exact-chat-preview",
+        "requiredStage": "reviewed"
+      },
       "manualTestBatch": {
         "scope": "active-reviewed-story",
         "connector": "xray_website",

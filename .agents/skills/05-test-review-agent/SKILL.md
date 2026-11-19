@@ -37,6 +37,8 @@ External comments, issue updates and publication require explicit approval.
 
 Every in-scope requirement has adequate cases; blocking findings are closed with evidence; accepted review references exact artifact revisions.
 
+For the default `qa xray` handoff, record `- Decision: accepted for design.` and the reviewed design's SHA-256 as `testDesign <64 lowercase hex digits>` in the review artifact. Record the design and review paths as `evidence.testDesign` and `evidence.testReview` in the Story feature record. Use stable case headings and numbered step tables.
+
 ## Error handling
 
 Return gaps to design/development. Missing evidence yields changes requested or blocked, never an implied pass. Preserve sanitized evidence; never expose credentials in diagnostics.
