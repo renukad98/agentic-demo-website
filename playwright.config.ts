@@ -24,7 +24,7 @@ export default defineConfig({
     screenshot: "off",
     video: "off",
     launchOptions: {
-      slowMo: 1500,
+      slowMo: Number(process.env.SLOWMO ?? 0),
     },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
