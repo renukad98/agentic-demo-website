@@ -252,6 +252,43 @@ export class XrayClient {
     return this.postGraphql<TData>(query, variables, token);
   }
 
+  /** Opt-in Manual Test route for the chat-approved session. */
+  async createManualTest(input: Pick<ManualTestPublicationInput, 'projectKey' | 'summary' | 'steps'> & {
+    folderPath?: string;
+  }): Promise<{ issueId: string; warnings: string[] }> {
+    const query = `mutation CreateManualTest($steps: [CreateStepInput], $jira: JSON!, $folderPath: String) {
+      createTest(testType: { name: "Manual" }, steps: $steps, jira: $jira, folderPath: $folderPath) {
+        test { issueId }
+        warnings
+      }
+    }`;
+    const token = await this.getAccessToken();
+    try {
+      const result = await this.postGraphql<{
+        createTest?: { test?: { issueId?: string }; warnings?: unknown };
+      }>(query, {
+        steps: input.steps,
+        jira: { fields: { project: { key: input.projectKey }, summary: input.summary } },
+        ...(input.folderPath === undefined ? {} : { folderPath: input.folderPath }),
+      }, token);
+      const issueId = result.createTest?.test?.issueId;
+      if (typeof issueId !== 'string' || !/^[1-9]\d*$/.test(issueId)) {
+        throw new XrayClientError('Xray did not return a valid Test issue ID.');
+      }
+      const warnings = result.createTest?.warnings;
+      return {
+        issueId,
+        warnings: Array.isArray(warnings)
+          ? warnings.filter((warning): warning is string => typeof warning === 'string')
+            .map(warning => this.sanitizeRemoteMessage(warning))
+          : [],
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new XrayMutationUncertainError(`${message} Check for the Test before retrying creation.`);
+    }
+  }
+
   /** Dedicated mutation route. It consumes a matching signed approval immediately before POST. */
   async createManualTestApproved(
     input: ManualTestPublicationInput,

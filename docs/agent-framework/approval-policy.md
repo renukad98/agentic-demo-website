@@ -1,5 +1,13 @@
 # Human approval workflow
 
+## Opt-in Agent 08 Manual Tests and Story links
+
+The default registration stays read-only. For an authorized local session after applicable managed review, opt in by appending `"--enable-writes"` to the existing `xray_website` MCP arguments or setting `XRAY_ENABLE_WRITES=true` for that process. The server announces the opt-in on stderr. Restrict access to the approved local session. The server registers the tools for the session, and Agent 08 enforces chat approval before dispatch.
+
+After local QA gates pass, resolve the target Story and complete duplicate review. Show the exact project and Story, TS-IDs, summaries, ordered action/data/result steps, optional folders, duplicate decisions and proposed Story links. Ask the owner to reply `OK` to approve those listed operations. Recheck freshness and scope before dispatch. The owner's explicit reply to the latest preview authorizes only the listed Manual Test creations and links to that Story. A changed preview or repeated operation requires fresh approval. This mode uses chat approval without approval IDs, plan digests or native forms.
+
+Process one Test at a time. Resolve returned issue IDs to Jira keys, store verified TS-ID → key mappings in per-Story JSON, and verify each approved link by readback. Stop at the first error or unresolved key and reconcile uncertain writes by reads before considering a retry. Result import remains outside this mode. The separate personal-batch and signed-scope rules below continue to apply to those modes.
+
 Phase 5E-C1 local enforcement: external operations require the new fail-closed TrustedApprovalGate consumption contract, including tenant/project/operation identity and source freshness. Legacy requireApproval now accepts local feature implementation only. Editable files, receipt JSON, environment variables and journal statuses cannot self-authorize. No production authority or live writer is implemented. See [publication readiness](xray-publication-readiness.md).
 
 Phase 5D authorizes local reusable framework implementation, instruction updates and isolated validation. Jira/Xray writes, commits, pushes, PRs and external publication remain disabled. A future feature request must explicitly authorize implementation; naming a planned feature does not authorize it. The default ApprovalProvider denies all and editable approval JSON is never trusted authority. See [framework implementation](phase5d-framework.md).

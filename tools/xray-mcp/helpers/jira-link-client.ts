@@ -131,6 +131,35 @@ export class JiraIssueLinkClient {
     return { storyKey, testKey, projectKey, payload, alreadyLinked };
   }
 
+  async linkTestToStory(preview: JiraLinkPreview): Promise<JiraLinkResult> {
+    const { storyKey, testKey } = preview;
+    const typeId = String(object(preview.payload.type)?.id);
+    let failure: unknown;
+    if (!preview.alreadyLinked) {
+      try {
+        await this.request('/rest/api/3/issueLink', {
+          method: 'POST',
+          body: JSON.stringify({ inwardIssue: { key: testKey }, outwardIssue: { key: storyKey }, type: { id: typeId } }),
+        });
+      } catch (error) {
+        failure = error;
+      }
+    }
+    let verified: LinkDetails | undefined;
+    try {
+      verified = (await this.linksForIssue(storyKey)).find(link =>
+        link.inwardIssue.key === testKey && link.outwardIssue.key === storyKey && link.type.id === typeId);
+      if (!verified) throw new JiraIssueLinkError('The expected Jira Test link was not found in Story readback.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const detail = failure instanceof Error ? `${failure.message} ` : '';
+      throw new JiraIssueLinkError(`${detail}${message} Do not retry automatically.`);
+    }
+    return preview.alreadyLinked
+      ? { status: 'already-linked', storyKey, testKey, linkId: verified.id }
+      : { status: 'linked', storyKey, testKey, linkId: verified.id, reconciled: Boolean(failure) };
+  }
+
   async createApproved(preview: JiraLinkPreview, approvalId: string, workflowId: string,
     correlationId: string, approvals: Pick<LocalDemoApprovalService, 'execute'>): Promise<JiraLinkResult> {
     if (preview.alreadyLinked) {

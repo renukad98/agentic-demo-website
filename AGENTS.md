@@ -1,5 +1,15 @@
 # Agentic development and QA instructions
 
+## One-time GitHub delivery for the opt-in Xray flow
+
+The repository owner may stage and commit the reviewed opt-in Xray changes on `fix/xray-chat-approved-publication`, push that branch once by normal non-force push to the identically named branch on `origin`, and open one PR from it into `chore/qa-next-handoffs`. This owner-only exception expires when the PR is opened. It grants no merge, history rewrite, other branch changes, or Jira/Xray writes.
+
+## Opt-in Agent 08 Manual Test publication
+
+The repository owner attested on 2026-11-19 that they completed the applicable managed review for live use of the opt-in mode in their local session. This review applies to that session only. Each live Manual Test creation or Story link still requires the owner's explicit `OK` on the exact chat preview described below.
+
+The persistent Xray MCP registration stays read-only. Local implementation and mock validation of the opt-in mode are authorized. After applicable managed review authorizes live activation for the local session, start it with `--enable-writes` or `XRAY_ENABLE_WRITES=true`. In that mode only, Agent 08 may create Manual Tests and link them to the same Story after the owner replies explicitly `OK` to the latest exact chat preview that offers that reply. The preview must specify the Story, project, each summary, ordered action/data/result steps, any folder, duplicate decision, and proposed link. Check duplicates first, process one Test at a time, resolve keys by read, record TS-ID → key in per-Story JSON, and stop on the first error. Result import and paused Stories remain outside this authorization. The existing personal-batch and signed-scope modes retain their own gates. See [approval policy](docs/agent-framework/approval-policy.md).
+
 ## One-time GitHub delivery exception
 
 The repository owner authorizes staging and committing only the removal of the `kan-29-validation` Git link and this policy entry on `chore/qa-next-handoffs`, and the five already-staged KAN-29 search files on `feature/KAN-29-search-tasks`. The local validation worktree and its files must be preserved. The resulting branch tips may be delivered once to their identically named branches on `origin` by normal, non-force pushes. This exception expires when those pushes are verified. It authorizes no merge, history rewrite, pull request, Jira or Xray write, or other change to Phase 5D/5E permissions. KAN-29 and KAN-30 remain paused.
