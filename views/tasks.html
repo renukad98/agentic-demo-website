@@ -98,9 +98,14 @@
                 Refresh tasks
               </button>
             </div>
+            <label for="task-search">Search tasks by title</label>
+            <input id="task-search" type="search" autocomplete="off" />
             <p id="task-loading" role="status">Loading your tasks…</p>
             <p id="task-empty" class="card" hidden>
               No tasks yet. Create your first task to get started.
+            </p>
+            <p id="task-no-matches" class="card" role="status" hidden>
+              No matching tasks found
             </p>
             <ul id="task-list" class="task-list"></ul>
           </section>

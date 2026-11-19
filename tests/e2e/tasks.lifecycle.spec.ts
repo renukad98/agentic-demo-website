@@ -68,7 +68,9 @@ test("TM-TC-01/02/28: defaults, identical titles and server-ordered list survive
   await expect(
     page.getByRole("article").filter({ hasText: "Same title" }),
   ).toHaveCount(2);
-  await expect(page.getByRole("searchbox")).toHaveCount(0);
+  await expect(
+    page.getByRole("searchbox", { name: "Search tasks by title" }),
+  ).toHaveValue("");
 });
 
 test("TM-TC-06/07/10/20: field feedback retains input and date-only display", async ({

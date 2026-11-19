@@ -74,6 +74,86 @@ test("TM-TC-20 TM-TC-21: renders literal text, whitespace, labels and empty stat
   }
 });
 
+test("KAN-29: title search filters live, restores order, and keeps the query through refresh", async () => {
+  const d = dom();
+  const doc = d.window.document;
+  const search = doc.querySelector<HTMLInputElement>("#task-search")!;
+  const empty = doc.querySelector<HTMLElement>("#task-empty")!;
+  const noMatches = doc.querySelector<HTMLElement>("#task-no-matches")!;
+  const plan = { ...record, id: "plan", title: "Weekly Planning [Q4]" };
+  const print = { ...record, id: "print", title: "Print notes" };
+  const invoice = {
+    ...record,
+    id: "invoice",
+    title: "Invoice",
+    description: "Planning",
+  };
+  let tasks = [plan, print, invoice];
+  let fail = false;
+  const requests: string[] = [];
+  const controller = initTasks(doc, async (url: string, init: RequestInit) => {
+    requests.push(`${init.method} ${url}`);
+    return fail ? json({}, 500) : json({ tasks });
+  });
+  const visibleIds = () =>
+    Array.from(
+      doc.querySelectorAll<HTMLElement>("[data-task-id]"),
+      (card) => card.dataset.taskId,
+    );
+  const type = (query: string) => {
+    search.value = query;
+    search.dispatchEvent(new d.window.Event("input", { bubbles: true }));
+  };
+  try {
+    assert.equal(await controller.ready, true);
+    assert.equal(search.labels?.[0]?.textContent, "Search tasks by title");
+    search.focus();
+    type("p");
+    assert.deepEqual(visibleIds(), ["plan", "print"]);
+    type("  PLAN  ");
+    assert.deepEqual(visibleIds(), ["plan"]);
+    type("[");
+    assert.deepEqual(visibleIds(), ["plan"]);
+    type("<b>");
+    assert.deepEqual(visibleIds(), []);
+    assert.equal(noMatches.hidden, false);
+    assert.equal(noMatches.textContent?.trim(), "No matching tasks found");
+    assert.equal(noMatches.getAttribute("role"), "status");
+    assert.equal(empty.hidden, true);
+    type("   ");
+    assert.deepEqual(visibleIds(), ["plan", "print", "invoice"]);
+    assert.equal(noMatches.hidden, true);
+    assert.equal(doc.activeElement, search);
+    assert.deepEqual(requests, ["GET /api/tasks"]);
+
+    type("plan");
+    tasks = [{ ...plan, id: "updated" }, invoice];
+    assert.equal(await controller.reload(), true);
+    assert.equal(search.value, "plan");
+    assert.deepEqual(visibleIds(), ["updated"]);
+
+    tasks = [];
+    assert.equal(await controller.reload(), true);
+    assert.equal(noMatches.hidden, false);
+    type("");
+    assert.equal(empty.hidden, false);
+    assert.equal(noMatches.hidden, true);
+
+    fail = true;
+    assert.equal(await controller.reload(), false);
+    type("plan");
+    assert.equal(noMatches.hidden, true);
+    assert.equal(empty.hidden, true);
+    assert.match(
+      doc.querySelector("#task-status")?.textContent ?? "",
+      /Unable to load tasks/,
+    );
+  } finally {
+    controller.dispose();
+    d.window.close();
+  }
+});
+
 test("TM-TC-06 TM-TC-20: blank validation and server field errors are associated with controls and preserve input", async () => {
   const d = dom();
   const controller = initTasks(d.window.document, async (url: string) =>

@@ -9,13 +9,17 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
   const list = doc.querySelector("#task-list");
   const loading = doc.querySelector("#task-loading");
   const empty = doc.querySelector("#task-empty");
+  const search = doc.querySelector("#task-search");
+  const noMatches = doc.querySelector("#task-no-matches");
   const dialog = doc.querySelector("#task-delete-dialog");
   const win = doc.defaultView;
   const events = new win.AbortController();
+  let cardEvents = new win.AbortController();
   const listen = (node, event, fn) =>
     node.addEventListener(event, fn, { signal: events.signal });
   let csrf;
   let tasks = [];
+  let listLoaded = false;
   let editing = null;
   let deleting = null;
   let deleteTrigger = null;
@@ -52,6 +56,11 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     expired = true;
     revision++;
     tasks = [];
+    listLoaded = false;
+    search.value = "";
+    empty.hidden = true;
+    noMatches.hidden = true;
+    cardEvents.abort();
     list.replaceChildren();
     resetEditor();
     deleting = null;
@@ -118,13 +127,20 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     const button = text("button", label, "secondary");
     button.type = "button";
     button.disabled = busy;
-    listen(button, "click", fn);
+    button.addEventListener("click", fn, { signal: cardEvents.signal });
     return button;
   }
   function render() {
+    cardEvents.abort();
+    cardEvents = new win.AbortController();
     list.replaceChildren();
-    empty.hidden = tasks.length !== 0 || expired;
-    for (const task of tasks) {
+    const query = search.value.trim().toLowerCase();
+    const visibleTasks = query
+      ? tasks.filter((task) => task.title.toLowerCase().includes(query))
+      : tasks;
+    empty.hidden = Boolean(query) || tasks.length !== 0;
+    noMatches.hidden = !query || visibleTasks.length !== 0;
+    for (const task of visibleTasks) {
       const item = doc.createElement("li");
       const article = doc.createElement("article");
       article.className = "card task-card";
@@ -195,13 +211,16 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
   async function load() {
     if (expired) return false;
     const ownRevision = ++revision;
+    listLoaded = false;
     loading.hidden = false;
     root.setAttribute("aria-busy", "true");
     empty.hidden = true;
+    noMatches.hidden = true;
     try {
       const data = await api("/api/tasks");
       if (ownRevision !== revision || expired) return false;
       tasks = data.tasks;
+      listLoaded = true;
       render();
       return true;
     } catch (error) {
@@ -292,6 +311,9 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     status.textContent = "";
     void load();
   });
+  listen(search, "input", () => {
+    if (listLoaded) render();
+  });
   const closeDelete = () => {
     deleting = null;
     dialog.close();
@@ -331,6 +353,7 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     dispose: () => {
       revision++;
       events.abort();
+      cardEvents.abort();
       tasks = [];
     },
   };
