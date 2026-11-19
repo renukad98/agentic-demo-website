@@ -29,6 +29,15 @@ test-results/
 playwright-report/
 playwright-results.json
 data/tasks.json
-/artifacts/
+/artifacts/*
+!/artifacts/qa/
+/artifacts/qa/*
+!/artifacts/qa/*/
+/artifacts/qa/*/*
+!/artifacts/qa/*/qa-xray-*/
+/artifacts/qa/*/qa-xray-*/*
+!/artifacts/qa/*/qa-xray-*/test-cases.md
+!/artifacts/qa/*/qa-xray-*/review.md
+!/artifacts/qa/*/xray-test-keys.json
 **/journal/operations.json*
 **/journal/writer-lock/

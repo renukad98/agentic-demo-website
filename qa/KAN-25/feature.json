@@ -1,0 +1,26 @@
+{
+  "storyKey": "KAN-25",
+  "paused": false,
+  "stage": "published",
+  "completedStages": [
+    "story",
+    "requirements",
+    "designed",
+    "reviewed",
+    "published"
+  ],
+  "pendingStages": [
+    "branch-ready",
+    "implemented",
+    "automated",
+    "executed",
+    "in-review",
+    "done"
+  ],
+  "evidence": {
+    "testDesign": "artifacts/qa/KAN-25/qa-xray-01/test-cases.md",
+    "testReview": "artifacts/qa/KAN-25/qa-xray-01/review.md"
+  },
+  "title": "Task Management",
+  "nextCommand": "qa branch"
+}
