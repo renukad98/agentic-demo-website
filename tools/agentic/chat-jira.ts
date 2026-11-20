@@ -206,7 +206,7 @@ function markdownText(value: string) {
   return value
     .replace(/^\s{0,3}(?:#{1,6}\s+|(?:[-+*]|\d+[.)])\s+)/gm, "")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .replace(/\\([\\\x60*_{}\[\]()#+.!~-])/g, "$1")
+    .replace(/\\([\\\x60*_{}[\]()#+.!~-])/g, "$1")
     .replace(/(\*\*|__|~~|\x60+)(.+?)\1/g, "$2")
     .replace(/(\*|_)(\S(?:.*?\S)?)\1/g, "$2")
     .replace(/\s+/g, " ")
