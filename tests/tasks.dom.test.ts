@@ -359,3 +359,84 @@ test("TM-TC-10: incomplete native date input is not silently interpreted as clea
     d.window.close();
   }
 });
+
+test("KAN-39-TC-001/002/003/004/010: bulk confirmation, cancellation, failure, and success", async () => {
+  const d = dom();
+  const doc = d.window.document;
+  const completed = {
+    ...record,
+    title: "Completed fixture",
+    status: "Completed",
+  };
+  const pending = { ...record, id: "pending", title: "Pending fixture" };
+  let tasks = [pending];
+  let writes = 0;
+  let fail = true;
+  const controller = initTasks(
+    doc,
+    async (url: string, options: RequestInit) => {
+      if (url === "/api/csrf") return json({ token: "fixture" });
+      if (url === "/api/tasks" && options.method === "GET")
+        return json({ tasks });
+      assert.equal(url, "/api/tasks/completed");
+      assert.equal(options.method, "DELETE");
+      writes++;
+      if (fail)
+        return json({ error: { message: "Unable to delete tasks." } }, 500);
+      tasks = [pending];
+      return json({ deletedIds: [completed.id] });
+    },
+  );
+  try {
+    const clear = doc.querySelector<HTMLButtonElement>(
+      "#task-clear-completed",
+    )!;
+    const dialog = doc.querySelector<HTMLDialogElement>("#task-delete-dialog")!;
+    const confirm = doc.querySelector<HTMLButtonElement>(
+      "#task-delete-confirm",
+    )!;
+    const status = doc.querySelector("#task-status")!;
+    const titles = () =>
+      [...doc.querySelectorAll("#task-list h3")].map(
+        (node) => node.textContent,
+      );
+    await controller.ready;
+    assert.equal(clear.hidden, true);
+    tasks = [pending, completed];
+    await controller.reload();
+    assert.equal(clear.hidden, false);
+
+    clear.click();
+    assert.equal(dialog.open, true);
+    assert.match(
+      dialog.textContent!,
+      /all your completed tasks will be permanently deleted/i,
+    );
+    assert.equal(writes, 0);
+    doc.querySelector<HTMLButtonElement>("#task-delete-cancel")!.click();
+    assert.equal(dialog.open, false);
+    assert.equal(doc.activeElement, clear);
+    clear.click();
+    dialog.dispatchEvent(new d.window.Event("cancel", { cancelable: true }));
+    assert.equal(dialog.open, false);
+    assert.equal(writes, 0);
+    assert.deepEqual(titles(), [pending.title, completed.title]);
+
+    clear.click();
+    confirm.click();
+    await settled(() => status.textContent === "Unable to delete tasks.");
+    assert.deepEqual(titles(), [pending.title, completed.title]);
+    fail = false;
+    clear.click();
+    confirm.click();
+    await settled(() => doc.activeElement?.id === "task-list-heading");
+    assert.equal(writes, 2);
+    assert.equal(clear.hidden, true);
+    assert.deepEqual(titles(), [pending.title]);
+    await controller.reload();
+    assert.deepEqual(titles(), [pending.title]);
+  } finally {
+    controller.dispose();
+    d.window.close();
+  }
+});

@@ -186,6 +186,24 @@ export class TaskStore {
       return { ...task };
     });
   }
+  async deleteCompleted(ownerId: string): Promise<string[]> {
+    return this.serialized(async (path) => {
+      const tasks = await this.read(path);
+      const deletedIds = tasks
+        .filter(
+          (task) => task.ownerId === ownerId && task.status === "Completed",
+        )
+        .map((task) => task.id);
+      if (deletedIds.length > 0) {
+        const deleted = new Set(deletedIds);
+        await this.commit(
+          path,
+          tasks.filter((task) => !deleted.has(task.id)),
+        );
+      }
+      return deletedIds;
+    });
+  }
   async delete(ownerId: string, id: string): Promise<boolean> {
     return this.serialized(async (path) => {
       const tasks = await this.read(path);
