@@ -6,7 +6,7 @@ const issueKey = z.string().regex(/^[A-Z][A-Z0-9]*-\d+$/);
 const caseId = z.string().regex(/^[A-Z][A-Z0-9-]*-TC-\d+$/);
 const mappingSchema = z.record(caseId, issueKey);
 
-function forStory(story: string) {
+export function forStory(story: string) {
   issueKey.parse(story);
   let keys: Record<string, string> = {};
   try {

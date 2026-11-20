@@ -275,3 +275,42 @@ test("HTTP 400 shows a capped, redacted response without creating a pending mark
     { code: "ENOENT" },
   );
 });
+
+test("qa run marks executed only after successful single-Story import", async (t) => {
+  const f = await fixture(t, ["KAN-51"]);
+  const file = "qa/KAN-51/feature.json";
+  const initial = {
+    storyKey: "KAN-51",
+    stage: "published",
+    testPlanKey: "KAN-35",
+    completedStages: ["published"],
+    pendingStages: ["executed", "in-review"],
+  };
+  await f.save(file, initial);
+  const state = async () =>
+    JSON.parse(await readFile(join(f.root, file), "utf8"));
+  const options = { ...f.options, story: "KAN-51", qaRun: true };
+  await importStoryResults({ ...options, dryRun: true });
+  assert.equal(JSON.parse(f.output[0]!).completeStage, "executed");
+  assert.equal(f.calls.length, 0);
+  await assert.rejects(
+    importStoryResults({
+      ...options,
+      fetch: async () => new Response(null, { status: 500 }),
+    }),
+    /HTTP 500/,
+  );
+  assert.deepEqual(await state(), initial);
+  await f.save(file, { ...initial, paused: true });
+  await importStoryResults(options);
+  assert.equal(f.calls.length, 0);
+  assert.deepEqual(await state(), { ...initial, paused: true });
+  await f.save(file, initial);
+  await importStoryResults(options);
+  assert.deepEqual(await state(), {
+    ...initial,
+    testExecutionKey: "KAN-99",
+    completedStages: ["published", "executed"],
+    pendingStages: ["in-review"],
+  });
+});

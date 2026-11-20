@@ -15,7 +15,7 @@ Inspect commands and data isolation before running. Execute lint, formatting che
 
 ### Chat Playwright results handoff
 
-For `qa run [STORY-KEY]`, resolve the explicit Story or use `qa/current.json` and read its feature record. Apply the pause policy. Run the persisted Playwright tests with `npm run test:e2e -- --grep "@STORY-KEY(?![0-9])"`, substituting the resolved Story key. Record the Playwright outcome. Hand the fresh JUnit report to Agent 08 to preview the same Story, including failed tests when Playwright produced a fresh report. Stop if Playwright did not produce a fresh report. Agent 08 handles the exact preview and the subsequent `OK` gate.
+For `qa run [STORY-KEY]`, resolve the explicit Story or use `qa/current.json` and read its feature record. Apply the pause policy. Run the persisted Playwright tests with `npm run test:e2e -- --grep "@STORY-KEY(?![0-9])"`, substituting the resolved Story key. Record the Playwright outcome. Hand the fresh JUnit report to Agent 08 to preview the same Story, including failed tests when Playwright produced a fresh report. Stop if Playwright did not produce a fresh report. Agent 08 handles the exact preview and the subsequent `OK` gate. For this handoff, pass `--qa-run` with `--story` in the dry run and approved import. A successful import records the execution key and completes the executed stage. Standalone results imports and CI use their existing commands.
 
 ## Inputs
 

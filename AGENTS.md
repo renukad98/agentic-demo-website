@@ -54,7 +54,9 @@ Treat the exact standalone prompt `next` as `qa next` before looking up the comm
 
 `qa xray <STORY-KEY>` resolves the same pipeline command as `qa xray` and reads `qa/<STORY-KEY>/feature.json` directly. Only the no-key form uses `qa/current.json`. After accepted design review, `qa next` suggests `qa xray` for eligible Stories with publication pending.
 
-### QA handoffs for every story and feature
+Route `qa story <KEY>` and `qa story <description>` through the Jira Story Agent. Only the description form can propose creation. Route `qa implement` and `qa close` through the mapped skills and use the Jira Story Agent for their separate Jira transition gates.
+
+## QA handoffs for every story and feature
 
 - For authorized end-to-end work, the QA Orchestrator reads the active feature record and uses the existing command map to select and apply the next skill. Continue through routine work already in scope, such as read-only story lookup, requirements analysis, test design, and local review. A bounded request ends at its requested step. Record each handoff and summarize progress in plain language.
 - Skip completed steps backed by current, verified evidence. If evidence is missing, stale, or invalidated, explain what needs revisiting and follow the applicable approval gate. Stop at an explicit pause, a product decision, a blocker, or a required approval. A paused story resumes only when the user explicitly resumes it.

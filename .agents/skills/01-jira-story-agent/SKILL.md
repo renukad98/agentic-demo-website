@@ -13,6 +13,16 @@ Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules
 
 Read the requested story and relevant linked requirements with bounded pagination. Separate source facts from inferred requirements. Preserve acceptance criterion identifiers; include source revision or a sanitized content fingerprint. For `qa story`, use an existing key for read-only intake or prepare the exact Story creation preview under the approval policy. After the owner's `OK`, create once, read back the assigned key and fields, and initialize `qa/<STORY-KEY>/feature.json` and the active pointer for the verified Story. Preview In Progress when approved implementation is ready to begin and Done when the orchestrator verifies completion. Read current status and valid transitions before each preview, dispatch only after a fresh `OK`, and verify the resulting status.
 
+## Chat command helper
+
+Run `node --import tsx tools/agentic/chat-jira.ts preview "<exact command>"` with a JSON packet on stdin containing `context`. Use the verified Jira tenant HTTPS origin as `context.cloudId`. For creation, pass `context.draft` with `summary`, `description`, and an array of `acceptanceCriteria`. Intake uses the returned key only for Jira reads and leaves the QA files untouched.
+
+For transitions, normalize the Jira issue to `context.story` with `key`, `id`, `projectKey`, `issueType`, `summary`, and `status`. Supply available transitions as `context.transitions` entries with `id`, `name`, and destination status name `to`. The orchestrator applies the implementation or closeout evidence gates before requesting approval.
+
+Show the exact tool arguments and proposed local changes. Wait for the owner's actual chat `OK`. Then refresh the Jira reads and run the helper's `check` action with the same command and packet fields `context`, `preview` (the full original helper result), and `reply` (the owner's actual reply). Dispatch exactly the checked tool arguments via Atlassian MCP. A null transition ID means Jira already has the target status. In that case skip the transition call and disclose any proposed local recording in the preview.
+
+After dispatch, read the issue by its key, verify the response, and call `record` with the checked pre-dispatch packet plus `readback` in the same normalized issue shape. For creation include the verified Markdown `description` and pass `createdIdentity` with the exact `id` and `key` returned by the create call. If anything fails after a possible write, stop and report the known key or ID. Reconcile via Jira reads and use the original approved packet to recover local recording when it still matches. Avoid resubmitting the create operation.
+
 ## Inputs
 
 Explicit story/project key and authorized Jira connector context.
