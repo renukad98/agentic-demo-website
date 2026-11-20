@@ -1,6 +1,6 @@
 {
   "storyKey": "KAN-39",
-  "stage": "executed",
+  "stage": "done",
   "paused": false,
   "completedStages": [
     "story",
@@ -11,12 +11,11 @@
     "branch-ready",
     "implemented",
     "automated",
-    "executed"
-  ],
-  "pendingStages": [
+    "executed",
     "in-review",
     "done"
   ],
+  "pendingStages": [],
   "testPlanKey": "KAN-50",
   "evidence": {
     "testDesign": "artifacts/qa/KAN-39/test-design-01/test-cases.md",
@@ -33,7 +32,6 @@
     "executionTraceability": "artifacts/qa/KAN-39/execution-01/traceability.csv"
   },
   "title": "Add a \"Clear completed tasks\" button",
-  "nextCommand": "qa pr",
   "proposedBranch": "feature/kan-39-clear-completed-tasks",
   "verifiedRecords": {
     "localBranch": {
@@ -46,7 +44,24 @@
       "passed": 5,
       "junitSha256": "e89f3786bdb44aed933ffcc37cfa9df93ddd8d9a061c2d3921370f2de39dea10",
       "readbackSource": "Owner manual verification in Jira"
+    },
+    "postMergeExecution": {
+      "ciRunNumber": 25,
+      "branch": "main",
+      "mergeCommit": "45cc24c559ca12cc404d6c7211ff95899cb6a3c5",
+      "pullRequestNumber": 9,
+      "testPlanKey": "KAN-50",
+      "testExecutionKey": "KAN-53",
+      "passedTestKeys": [
+        "KAN-40",
+        "KAN-41",
+        "KAN-42",
+        "KAN-43",
+        "KAN-44",
+        "KAN-49"
+      ],
+      "source": "Owner-provided GitHub Actions import output and owner verification in Jira"
     }
   },
-  "testExecutionKey": "KAN-51"
+  "testExecutionKey": "KAN-53"
 }
