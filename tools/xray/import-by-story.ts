@@ -1,6 +1,7 @@
 import { readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
+import { stripVTControlCharacters } from "node:util";
 import { z } from "zod";
 import { noSymlinks, within } from "../agentic/artifacts.js";
 import {
@@ -232,11 +233,34 @@ async function recordExecution(
   }
 }
 
+class XrayHttpError extends Error {
+  constructor(status: number, detail: string) {
+    super(`HTTP ${status}${detail ? `: ${detail}` : ""}`);
+  }
+}
+
+function redactXrayError(text: string, credentials: readonly string[]) {
+  const variants = new Set(
+    credentials.flatMap((value) => [
+      value,
+      JSON.stringify(value).slice(1, -1),
+      new URLSearchParams({ value }).toString().slice(6),
+    ]),
+  );
+  for (const value of [...variants].sort((a, b) => b.length - a.length)) {
+    text = text.replaceAll(value, "[REDACTED]");
+  }
+  const detail = stripVTControlCharacters(text).replace(/\s+/g, " ").trim();
+  const limit = 500;
+  return detail.length > limit ? detail.slice(0, limit - 1) + "…" : detail;
+}
+
 async function post(
   fetcher: typeof fetch,
   url: string,
   headers: Record<string, string>,
   body: string,
+  credentials: readonly string[],
 ) {
   const response = await fetcher(url, {
     method: "POST",
@@ -246,8 +270,11 @@ async function post(
     signal: AbortSignal.timeout(30_000),
   });
   if (!response.ok) {
-    const detail = (await response.text().catch(() => "")).trim();
-    throw new Error(`HTTP ${response.status}${detail ? `: ${detail}` : ""}`);
+    const text = await response.text().catch(() => "");
+    throw new XrayHttpError(
+      response.status,
+      redactXrayError(text, credentials),
+    );
   }
   return (await response.json()) as unknown;
 }
@@ -288,6 +315,7 @@ export async function importStoryResults(options: ResultsOptions) {
                 client_id: clientId,
                 client_secret: clientSecret,
               }),
+              [clientId, clientSecret],
             ),
           );
       }
@@ -300,6 +328,7 @@ export async function importStoryResults(options: ResultsOptions) {
           Authorization: `Bearer ${token}`,
         },
         group.payload,
+        [clientId, clientSecret, token],
       );
       executionKey = z.object({ key }).parse(response).key;
       if (!executionKey.startsWith(group.projectKey + "-"))
@@ -310,12 +339,15 @@ export async function importStoryResults(options: ResultsOptions) {
       executions.push({ story: group.story, testExecutionKey: executionKey });
       print(`${group.story}: Test Execution ${executionKey}`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const detail = [clientId, clientSecret, token].reduce<string>(
-        (text, secret) =>
-          secret ? text.replaceAll(secret, "[redacted]") : text,
-        message,
-      );
+      const detail =
+        error instanceof XrayHttpError
+          ? error.message
+          : redactXrayError(
+              error instanceof Error ? error.message : String(error),
+              token
+                ? [clientId, clientSecret, token]
+                : [clientId, clientSecret],
+            );
       throw new Error(
         `Xray import stopped at ${group.story}${executionKey ? ` (returned ${executionKey})` : ""}: ${detail}`,
       );

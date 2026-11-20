@@ -1,7 +1,7 @@
 {
   "storyKey": "KAN-25",
-  "paused": false,
   "stage": "published",
+  "paused": false,
   "completedStages": [
     "story",
     "requirements",
@@ -9,6 +9,7 @@
     "reviewed",
     "published"
   ],
+  "testPlanKey": "KAN-36",
   "pendingStages": [
     "branch-ready",
     "implemented",
@@ -22,6 +23,6 @@
     "testReview": "artifacts/qa/KAN-25/qa-xray-01/review.md"
   },
   "title": "Task Management",
-  "testPlanKey": "KAN-35",
-  "nextCommand": "qa branch"
+  "nextCommand": "qa branch",
+  "testExecutionKey": "KAN-37"
 }
