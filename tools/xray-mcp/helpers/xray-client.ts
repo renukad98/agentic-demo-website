@@ -252,6 +252,26 @@ export class XrayClient {
     return this.postGraphql<TData>(query, variables, token);
   }
 
+  /** Opt-in Test Plan route for the chat-approved session. */
+  async createTestPlan(projectKey: string, summary: string): Promise<string> {
+    const query = `mutation CreateTestPlan($jira: JSON!) {
+      createTestPlan(jira: $jira) { testPlan { issueId } }
+    }`;
+    const token = await this.getAccessToken();
+    try {
+      const result = await this.postGraphql<{ createTestPlan?: { testPlan?: { issueId?: string } } }>(
+        query, { jira: { fields: { project: { key: projectKey }, summary } } }, token,
+      );
+      const issueId = result.createTestPlan?.testPlan?.issueId;
+      if (typeof issueId !== 'string' || !/^[1-9]\d*$/.test(issueId))
+        throw new XrayClientError('Xray did not return a valid Test Plan issue ID.');
+      return issueId;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new XrayMutationUncertainError(`${message} Check for the Test Plan by read before retrying creation.`);
+    }
+  }
+
   /** Opt-in Manual Test route for the chat-approved session. */
   async createManualTest(input: Pick<ManualTestPublicationInput, 'projectKey' | 'summary' | 'steps'> & {
     folderPath?: string;

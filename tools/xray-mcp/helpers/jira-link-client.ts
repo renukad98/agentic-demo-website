@@ -160,6 +160,31 @@ export class JiraIssueLinkClient {
       : { status: 'linked', storyKey, testKey, linkId: verified.id, reconciled: Boolean(failure) };
   }
 
+  async linkRelatedIssues(inwardKey: string, outwardKey: string) {
+    if (inwardKey === outwardKey) throw new JiraIssueLinkError("Cannot link an issue to itself.");
+    const [inward, outward] = await Promise.all([this.getIssue(inwardKey), this.getIssue(outwardKey)]);
+    if (inward.key !== inwardKey || outward.key !== outwardKey) {
+      throw new JiraIssueLinkError("Jira returned different issue keys than requested.");
+    }
+    const types = (await this.getLinkTypes()).filter(type => type.name === "Relates");
+    if (types.length !== 1) throw new JiraIssueLinkError("Jira Relates link type is missing or ambiguous.");
+    const type = types[0]!;
+    const findLink = async () => (await this.linksForIssue(outwardKey)).find(link =>
+      link.type.id === type.id && link.type.name === "Relates" &&
+      ((link.inwardIssue.key === inwardKey && link.outwardIssue.key === outwardKey) ||
+        (link.inwardIssue.key === outwardKey && link.outwardIssue.key === inwardKey)));
+    const existing = await findLink();
+    if (existing) return { status: "already-linked", inwardKey, outwardKey, linkId: existing.id };
+
+    await this.request("/rest/api/3/issueLink", {
+      method: "POST",
+      body: JSON.stringify({ inwardIssue: { key: inwardKey }, outwardIssue: { key: outwardKey }, type: { id: type.id } }),
+    });
+    const verified = await findLink();
+    if (!verified) throw new JiraIssueLinkError("Jira Relates link could not be verified. Reconcile by read before retrying.");
+    return { status: "linked", inwardKey, outwardKey, linkId: verified.id };
+  }
+
   async createApproved(preview: JiraLinkPreview, approvalId: string, workflowId: string,
     correlationId: string, approvals: Pick<LocalDemoApprovalService, 'execute'>): Promise<JiraLinkResult> {
     if (preview.alreadyLinked) {

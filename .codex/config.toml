@@ -4,7 +4,7 @@ command = "node"
 args = ["--import", "tsx", "tools/xray-mcp/src/integrations/xray-mcp/server.ts"]
 env_vars = ["XRAY_ENABLE_WRITES"]
 enabled = true
-enabled_tools = ["xray_search_tests", "xray_get_test", "xray_get_test_coverage", "xray_create_manual_test", "xray_resolve_test_keys", "xray_link_test_to_story"]
+enabled_tools = ["xray_search_tests", "xray_get_test", "xray_get_test_coverage", "xray_create_manual_test", "xray_resolve_test_keys", "xray_link_test_to_story", "xray_create_test_plan", "jira_link_issues"]
  
 # Keep the inherited legacy connector unavailable in this project.
 [mcp_servers.xray]

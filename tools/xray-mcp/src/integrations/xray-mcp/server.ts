@@ -645,7 +645,7 @@ export function createXrayMcpServer(
 
 /** The caller owns chat approval. Use only in an authorized local session. */
 export function createChatWriteXrayMcpServer(
-  client: GraphqlClient & Pick<XrayClient, 'createManualTest'>,
+  client: GraphqlClient & Pick<XrayClient, 'createManualTest' | 'createTestPlan'>,
   getJiraClient = () => JiraIssueLinkClient.fromEnvironment(),
 ): McpServer {
   const server = createXrayMcpServer(client);
@@ -664,6 +664,33 @@ export function createChatWriteXrayMcpServer(
     }).strict(),
     annotations: writeAnnotations,
   }, input => toolResult(() => client.createManualTest(input)));
+
+  const planKeySchema = z.string().regex(/^[A-Z][A-Z0-9_]{0,9}-[1-9]\d*$/);
+  server.registerTool('xray_create_test_plan', {
+    description: 'Create one Xray Test Plan after explicit approval of the exact chat preview, then resolve its Jira key by read.',
+    inputSchema: z.object({ projectKey: projectKeySchema, summary: z.string().trim().min(1).max(255) }).strict(),
+    annotations: writeAnnotations,
+  }, ({ projectKey, summary }) => toolResult(async () => {
+    const issueId = await client.createTestPlan(projectKey, summary);
+    try {
+      const result = record(await client.graphqlRequest<unknown>(`query VerifyTestPlan($issueId: String) {
+        getTestPlan(issueId: $issueId) { issueId jira(fields: ["key", "summary"]) }
+      }`, { issueId }));
+      const plan = record(result?.getTestPlan);
+      const jira = record(plan?.jira);
+      const key = planKeySchema.safeParse(jira?.key);
+      if (plan?.issueId === issueId && key.success && key.data.startsWith(projectKey + "-") && jira?.summary === summary) {
+        return { issueId, key: key.data };
+      }
+    } catch { /* Preserve the known issue ID for read-only reconciliation. */ }
+    throw new XrayClientError(`Xray Test Plan issue ID ${issueId} could not be verified. Reconcile by read before retrying.`);
+  }));
+
+  server.registerTool('jira_link_issues', {
+    description: 'Create and verify one Jira Relates link after explicit approval of the exact chat preview.',
+    inputSchema: z.object({ inwardKey: planKeySchema, outwardKey: planKeySchema }).strict(),
+    annotations: { ...writeAnnotations, idempotentHint: true },
+  }, ({ inwardKey, outwardKey }) => toolResult(() => getJiraClient().linkRelatedIssues(inwardKey, outwardKey)));
 
   const linkSchema = prepareTestLinkPreviewInputSchema.pick({ storyKey: true, testKey: true });
   server.registerTool('xray_resolve_test_keys', {
