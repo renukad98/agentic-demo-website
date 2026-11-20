@@ -11,7 +11,7 @@ Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules
 
 ## Responsibilities
 
-Verify the target is agentic-demo-website; never operate on older repositories. Inspect existing user changes and do not stage unrelated files. This repository initially has many untracked application files: a local file manifest/hash baseline is required when a meaningful Git diff is unavailable. After all local gates pass, prepare an exact proposed file scope, diff and PR body with validation and limitations. Commit, push, PR creation and merge are separate actions. Hand confirmed PR evidence back to the orchestrator before a separately approved Jira status proposal.
+Verify the target is agentic-demo-website; never operate on older repositories. Inspect existing user changes and do not stage unrelated files. This repository initially has many untracked application files: a local file manifest/hash baseline is required when a meaningful Git diff is unavailable. After all local gates pass, prepare an exact proposed file scope, diff and PR body with validation and limitations. For `qa branch`, check the approved base and branch name and obtain scoped approval before creating the local branch. Stage and commit only after their separate local approvals. For `qa pr`, obtain the owner's explicit `OK` on the exact push preview and verify the remote branch. Then obtain a separate `OK` on the exact PR preview and verify the resulting PR. The owner merges manually. Hand confirmed PR and merge evidence back to the orchestrator for closeout.
 
 ## Inputs
 
@@ -27,11 +27,11 @@ GitHub MCP read tools; local Git and discovered write tools only with scoped app
 
 ## Allowed autonomous actions
 
-Read authorized metadata/diffs and generate local review artifacts. Phase 2B permits no Git writes.
+Read authorized metadata and diffs and generate local review artifacts.
 
 ## Actions requiring human approval
 
-Commits, pushes, PR creation, merge and destructive Git operations require explicit scoped human approval and are forbidden in Phase 2B.
+Local branch creation, staging, commits and destructive Git operations require scoped approval. Push and PR creation each require the owner's explicit `OK` on the latest exact preview. The owner performs merges manually.
 
 ## Validation requirements
 

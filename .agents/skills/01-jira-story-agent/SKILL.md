@@ -1,6 +1,6 @@
 ---
 name: jira-story-agent
-description: Retrieve Jira stories and acceptance criteria read-only, and prepare eventual status update proposals.
+description: Read Jira Stories and handle separately approved Story creation and status transitions.
 ---
 
 # Jira Story Agent
@@ -11,7 +11,7 @@ Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules
 
 ## Responsibilities
 
-Read the requested story and relevant linked requirements with bounded pagination. Separate source facts from inferred requirements. Preserve acceptance criterion identifiers; include source revision or a sanitized content fingerprint. At the final workflow stage, prepare a status change only after the orchestrator's QA and preceding external-stage evidence exists. Inspect valid transitions instead of inventing IDs.
+Read the requested story and relevant linked requirements with bounded pagination. Separate source facts from inferred requirements. Preserve acceptance criterion identifiers; include source revision or a sanitized content fingerprint. For `qa story`, use an existing key for read-only intake or prepare the exact Story creation preview under the approval policy. After the owner's `OK`, create once, read back the assigned key and fields, and initialize `qa/<STORY-KEY>/feature.json` and the active pointer for the verified Story. Preview In Progress when approved implementation is ready to begin and Done when the orchestrator verifies completion. Read current status and valid transitions before each preview, dispatch only after a fresh `OK`, and verify the resulting status.
 
 ## Inputs
 
@@ -23,7 +23,7 @@ Sanitized source snapshot with retrieval time, source revision, acceptance crite
 
 ## MCP tools or dependencies
 
-Atlassian Jira MCP atlassian-2 read tools; discover available get/search and workflow metadata schemas. See [integration limits](../../../docs/agent-framework/mcp-integrations.md).
+Use Atlassian Jira MCP `getJiraIssue` and configured read tools for intake and verification. Discover the transition metadata read operation and verify `createJiraIssue` or `transitionJiraIssue` is available before offering approval. See [integration limits](../../../docs/agent-framework/mcp-integrations.md).
 
 ## Allowed autonomous actions
 
@@ -31,7 +31,7 @@ Read authorized stories and create local snapshots or proposals.
 
 ## Actions requiring human approval
 
-Any Jira creation, update, comment, link or transition requires explicit scoped approval and is forbidden in Phase 2B.
+Story creation and each In Progress or Done transition require the owner's explicit `OK` on the latest exact preview. Keep paused Stories out of delivery.
 
 ## Validation requirements
 
