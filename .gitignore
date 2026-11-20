@@ -41,3 +41,5 @@ data/tasks.json
 !/artifacts/qa/*/xray-test-keys.json
 **/journal/operations.json*
 **/journal/writer-lock/
+
+/kan-29-validation/
