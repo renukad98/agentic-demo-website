@@ -12,6 +12,12 @@ Phase 5E-C1 local enforcement: external operations require the new fail-closed T
 
 Phase 5D authorizes local reusable framework implementation, instruction updates and isolated validation. Jira/Xray writes, commits, pushes, PRs and external publication remain disabled. A future feature request must explicitly authorize implementation; naming a planned feature does not authorize it. The default ApprovalProvider denies all and editable approval JSON is never trusted authority. See [framework implementation](phase5d-framework.md). This restriction applies except to the route described in [Opt-in Agent 08 Manual Tests and Story links](#opt-in-agent-08-manual-tests-and-story-links). For that route, in an opted-in owner local session subject to applicable managed controls, the owner's explicit `OK` on the exact chat preview authorizes only the listed Manual Test creations and Story links.
 
+## Chat-approved Test Plan and Story link
+
+This local route is an exception to the Phase 5D external-write restrictions and remains subject to applicable managed controls. In an opted-in MCP session, Agent 08 may use `xray_create_test_plan` and `jira_link_issues` only after the owner explicitly replies `OK` to the latest exact preview for one Story. Show the tenant, project, Story, existing plan key or exact creation summary, and the fixed Jira `Relates` link between the plan and that Story.
+
+Recheck freshness and scope before dispatch. Create only if previewed, resolve and verify the plan by read, and verify the exact link by readback before saving `testPlanKey` in the Story feature record. Stop at the first error. Reconcile a known or uncertain create or link by read before seeking fresh approval. Apply the pause policy. CI has no Test Plan creation or Story-link authorization.
+
 ## Per-Story Playwright results import
 
 This results-only route is an exception to the Phase 5D external-write restrictions and remains subject to applicable managed controls. Use the CLI with Xray credentials supplied by the environment. The CLI imports by default. Pass the `--dry-run` flag to print the preview without contacting Xray.

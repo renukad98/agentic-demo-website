@@ -55,6 +55,8 @@ test(
         ];
         if (optIn)
           names.push(
+            "jira_link_issues",
+            "xray_create_test_plan",
             "xray_create_manual_test",
             "xray_link_test_to_story",
             "xray_resolve_test_keys",
@@ -120,7 +122,9 @@ test("opt-in creates one exact Manual Test, resolves IDs and reads back the Test
           jira: { fields: { project: { key: "KAN" }, summary: " Open task " } },
         });
         assert.match(query, /\bwarnings\b/);
-        return Response.json({ data: { createTest: { test: { issueId }, warnings } } });
+        return Response.json({
+          data: { createTest: { test: { issueId }, warnings } },
+        });
       }
       if (query.includes("query ResolveTestKeys")) {
         assert.deepEqual(variables, { issueIds: [issueId, "999"], limit: 2 });
@@ -260,6 +264,9 @@ test("tool errors preserve the message while redacting credential values", async
   const server = createChatWriteXrayMcpServer({
     async graphqlRequest() {
       throw new Error("Unexpected read");
+    },
+    async createTestPlan() {
+      throw new Error("Unexpected Test Plan creation");
     },
     async createManualTest() {
       throw new Error(
