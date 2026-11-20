@@ -1,0 +1,52 @@
+{
+  "storyKey": "KAN-39",
+  "stage": "executed",
+  "paused": false,
+  "completedStages": [
+    "story",
+    "requirements",
+    "designed",
+    "reviewed",
+    "published",
+    "branch-ready",
+    "implemented",
+    "automated",
+    "executed"
+  ],
+  "pendingStages": [
+    "in-review",
+    "done"
+  ],
+  "testPlanKey": "KAN-50",
+  "evidence": {
+    "testDesign": "artifacts/qa/KAN-39/test-design-01/test-cases.md",
+    "testReview": "artifacts/qa/KAN-39/test-review-02/review.md",
+    "requirements": "artifacts/qa/KAN-39/requirements-01/requirements.md",
+    "requirementsTraceability": "artifacts/qa/KAN-39/requirements-01/traceability.csv",
+    "requirementsReport": "artifacts/qa/KAN-39/requirements-01/run-report.md",
+    "traceability": "artifacts/qa/KAN-39/test-design-01/traceability.csv",
+    "testDesignReport": "artifacts/qa/KAN-39/test-design-01/run-report.md",
+    "implementationReport": "artifacts/qa/KAN-39/implementation-01/run-report.md",
+    "automationReport": "artifacts/qa/KAN-39/automation-01/run-report.md",
+    "executionReport": "artifacts/qa/KAN-39/execution-01/run-report.md",
+    "executionJUnit": "artifacts/qa/KAN-39/execution-01/xray-junit.xml",
+    "executionTraceability": "artifacts/qa/KAN-39/execution-01/traceability.csv"
+  },
+  "title": "Add a \"Clear completed tasks\" button",
+  "nextCommand": "qa pr",
+  "proposedBranch": "feature/kan-39-clear-completed-tasks",
+  "verifiedRecords": {
+    "localBranch": {
+      "name": "feature/kan-39-clear-completed-tasks",
+      "baseCommit": "77b4f70767f999fd983bcddbebe4b37aa927f5a6"
+    },
+    "executionReconciliation": {
+      "testExecutionKey": "KAN-51",
+      "testPlanKey": "KAN-50",
+      "passed": 5,
+      "junitSha256": "e89f3786bdb44aed933ffcc37cfa9df93ddd8d9a061c2d3921370f2de39dea10",
+      "readbackSource": "Owner manual verification in Jira"
+    }
+  },
+  "testExecutionKey": "KAN-51"
+}

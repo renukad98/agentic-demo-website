@@ -400,3 +400,94 @@ test("TM-TC-28: API list sorts newest first, then ascending ID on equal timestam
     await f.cleanup();
   }
 });
+
+test("KAN-39-TC-006/008: bulk deletion persists, preserves other tasks and can be repeated", async () => {
+  const f = await taskApiFixture();
+  try {
+    const a = await f.login();
+    const b = await f.login(1);
+    const data = {
+      title: "Fixture task",
+      description: "",
+      priority: "Medium",
+      dueDate: null,
+    } as const;
+    const completed = [];
+    for (let index = 0; index < 2; index++) {
+      const task = await f.store.create(a.user.id, data);
+      await f.store.setStatus(a.user.id, task.id, "Completed");
+      completed.push(task.id);
+    }
+    const keep = await f.store.create(a.user.id, data);
+    const other = await f.store.create(b.user.id, data);
+    await f.store.setStatus(b.user.id, other.id, "Completed");
+    await f.store.create(b.user.id, data);
+    const otherBefore = await f.store.list(b.user.id);
+
+    const result = await a.agent
+      .delete("/api/tasks/completed")
+      .set("X-CSRF-Token", a.csrf)
+      .expect(200);
+    assert.deepEqual(new Set(result.body.deletedIds), new Set(completed));
+    const restarted = createApp({
+      secret: f.secret,
+      userFile: f.userFile,
+      taskFile: f.taskFile,
+    });
+    const freshA = await f.login(0, restarted);
+    const freshB = await f.login(1, restarted);
+    assert.deepEqual(
+      (await freshA.agent.get("/api/tasks").expect(200)).body.tasks,
+      [keep],
+    );
+    assert.deepEqual(
+      (await freshB.agent.get("/api/tasks").expect(200)).body.tasks,
+      otherBefore,
+    );
+
+    const beforeRepeat = await readFile(f.taskFile, "utf8");
+    await freshA.agent
+      .delete("/api/tasks/completed")
+      .set("X-CSRF-Token", freshA.csrf)
+      .expect(200, { deletedIds: [] });
+    assert.equal(await readFile(f.taskFile, "utf8"), beforeRepeat);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("KAN-39-TC-009: failed bulk write preserves every original record", async () => {
+  let fail = false;
+  const f = await taskApiFixture({
+    fs: {
+      rename: async (from, to) => {
+        if (fail) throw new Error("Injected storage failure");
+        await taskFileSystem.rename(from, to);
+      },
+    },
+  });
+  try {
+    const a = await f.login();
+    const data = {
+      title: "Fixture task",
+      description: "",
+      priority: "Medium",
+      dueDate: null,
+    } as const;
+    for (let index = 0; index < 2; index++) {
+      const task = await f.store.create(a.user.id, data);
+      await f.store.setStatus(a.user.id, task.id, "Completed");
+    }
+    await f.store.create(a.user.id, data);
+    const before = await readFile(f.taskFile, "utf8");
+    fail = true;
+    const response = await a.agent
+      .delete("/api/tasks/completed")
+      .set("X-CSRF-Token", a.csrf)
+      .expect(500);
+    assert.equal(response.body.error.code, "INTERNAL_ERROR");
+    assert.equal(await readFile(f.taskFile, "utf8"), before);
+  } finally {
+    await f.cleanup();
+  }
+});

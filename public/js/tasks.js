@@ -10,6 +10,8 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
   const loading = doc.querySelector("#task-loading");
   const empty = doc.querySelector("#task-empty");
   const dialog = doc.querySelector("#task-delete-dialog");
+  const clearCompleted = doc.querySelector("#task-clear-completed");
+  const deleteCompleted = Symbol("delete completed tasks");
   const win = doc.defaultView;
   const events = new win.AbortController();
   const listen = (node, event, fn) =>
@@ -123,6 +125,7 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
   }
   function render() {
     list.replaceChildren();
+    clearCompleted.hidden = !tasks.some((task) => task.status === "Completed");
     empty.hidden = tasks.length !== 0 || expired;
     for (const task of tasks) {
       const item = doc.createElement("li");
@@ -170,11 +173,12 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
       );
       actions.append(
         action("Delete", (event) => {
-          deleting = task;
-          deleteTrigger = event.currentTarget;
-          doc.querySelector("#task-delete-message").textContent =
-            `Delete “${task.title}”?`;
-          dialog.showModal();
+          openDelete(
+            task,
+            event.currentTarget,
+            "Permanently delete task?",
+            `Delete “${task.title}”?`,
+          );
         }),
       );
       article.append(actions);
@@ -187,6 +191,7 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     submit.disabled = value;
     cancelEdit.disabled = value;
     doc.querySelector("#task-refresh").disabled = value;
+    clearCompleted.disabled = value;
     for (const button of list.querySelectorAll("button"))
       button.disabled = value;
     doc.querySelector("#task-delete-confirm").disabled = value;
@@ -292,6 +297,23 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     status.textContent = "";
     void load();
   });
+  function openDelete(selection, trigger, heading, message) {
+    if (busy || expired || dialog.open) return;
+    deleting = selection;
+    deleteTrigger = trigger;
+    doc.querySelector("#task-delete-heading").textContent = heading;
+    doc.querySelector("#task-delete-message").textContent = message;
+    dialog.showModal();
+  }
+  listen(clearCompleted, "click", () => {
+    if (clearCompleted.hidden) return;
+    openDelete(
+      deleteCompleted,
+      clearCompleted,
+      "Clear completed tasks?",
+      "All your completed tasks will be permanently deleted.",
+    );
+  });
   const closeDelete = () => {
     deleting = null;
     dialog.close();
@@ -307,16 +329,35 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     const selected = deleting;
     setBusy(true);
     try {
-      await api(`/api/tasks/${selected.id}`, "DELETE");
+      if (selected === deleteCompleted) {
+        const { deletedIds } = await api("/api/tasks/completed", "DELETE");
+        const deleted = new Set(deletedIds);
+        tasks = tasks.filter((task) => !deleted.has(task.id));
+        if (editing && deleted.has(editing.id)) resetEditor();
+        render();
+        status.textContent = deleted.size
+          ? "Completed tasks permanently deleted."
+          : "There were no completed tasks to delete.";
+      } else {
+        await api(`/api/tasks/${selected.id}`, "DELETE");
+        if (editing?.id === selected.id) resetEditor();
+        status.textContent = "Task permanently deleted.";
+      }
       deleting = null;
       dialog.close();
-      if (editing?.id === selected.id) resetEditor();
-      status.textContent = "Task permanently deleted.";
       await load();
       doc.querySelector("#task-list-heading").focus();
     } catch (error) {
+      deleting = null;
       if (dialog.open) dialog.close();
-      status.textContent = error.message;
+      status.textContent =
+        selected === deleteCompleted && error.uncertain
+          ? "The deletion outcome is uncertain. Refresh tasks before retrying."
+          : error.message;
+      if (selected === deleteCompleted && !expired) {
+        setBusy(false);
+        clearCompleted.focus();
+      }
     } finally {
       setBusy(false);
     }
