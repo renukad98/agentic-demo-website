@@ -15,7 +15,6 @@ import {
 } from "../../tools/xray/playwright-junit.js";
 
 const env = {
-  XRAY_ENABLE_WRITES: "true",
   JIRA_BASE_URL: "https://jira.example.test",
   XRAY_BASE_URL: "https://xray.example.test",
   XRAY_CLIENT_ID: "synthetic-id",
@@ -111,14 +110,26 @@ test("dry run groups by story and filters exact story without fetching", async (
   assert.equal(preview.notPublished.length, 2);
   const filtered = await prepareStoryResults({ ...f.options, story: "QA-1" });
   assert.equal(filtered.imports.length, 1);
-  assert.notEqual(preview.digest, filtered.digest);
-  await importStoryResults(f.options);
-  assert.deepEqual(JSON.parse(f.output[0]!), preview);
+  assert.deepEqual(
+    filtered.notPublished.map(({ story }) => story),
+    ["QA-1"],
+  );
+  await importStoryResults({ ...f.options, dryRun: true, env: {} });
+  assert.deepEqual(
+    JSON.parse(f.output[0]!),
+    await prepareStoryResults({ ...f.options, env: {} }),
+  );
   assert.equal(f.calls.length, 0);
 });
 
-test("done and no-plan stories are reported and a missing story fails before fetch", async (t) => {
-  const f = await fixture(t, ["KAN-25", "QA-1"]);
+test("done, paused and no-plan stories are reported and a missing story fails before fetch", async (t) => {
+  const f = await fixture(t, ["KAN-25", "QA-1", "ZZ-1"]);
+  await f.save("qa/ZZ-1/feature.json", {
+    storyKey: "ZZ-1",
+    stage: "published",
+    testPlanKey: "ZZ-35",
+    paused: true,
+  });
   await f.save("qa/KAN-25/feature.json", { storyKey: "KAN-25", stage: "done" });
   await f.save("qa/QA-1/feature.json", {
     storyKey: "QA-1",
@@ -127,6 +138,7 @@ test("done and no-plan stories are reported and a missing story fails before fet
   assert.deepEqual((await prepareStoryResults(f.options)).skipped, [
     { story: "KAN-25", reason: "story done" },
     { story: "QA-1", reason: "no testPlanKey" },
+    { story: "ZZ-1", reason: "story paused" },
   ]);
   await f.setReport('<testcase name="untagged"/>');
   await assert.rejects(
@@ -136,37 +148,34 @@ test("done and no-plan stories are reported and a missing story fails before fet
   assert.equal(f.calls.length, 0);
 });
 
-test("stale report digest, disabled writes and changed mapping fail before fetch", async (t) => {
+test("a changed mapping blocks import before fetch", async (t) => {
   const f = await fixture(t);
-  const preview = await prepareStoryResults(f.options);
-  await assert.rejects(
-    importStoryResults(
-      { ...f.options, env: { ...env, XRAY_ENABLE_WRITES: "false" } },
-      preview.digest,
-    ),
-    /XRAY_ENABLE_WRITES/,
-  );
-  await f.save(
-    f.report,
-    expandPlaywrightJUnit(
-      `<testsuite>${raw("KAN-25", "<failure/>")}</testsuite>`,
-    ).xml,
-  );
-  await assert.rejects(
-    importStoryResults(f.options, preview.digest),
-    /does not match/,
-  );
   await f.save("artifacts/qa/KAN-25/xray-test-keys.json", {
     "TM-TC-05": "KAN-90",
   });
-  await assert.rejects(prepareStoryResults(f.options), /mapping changed/);
+  await assert.rejects(importStoryResults(f.options), /mapping changed/);
   assert.equal(f.calls.length, 0);
 });
 
-test("confirmed import posts exactly the previewed XML and persists the execution", async (t) => {
+test("invalid or unmarked missing Test keys block import before fetch", async (t) => {
+  const f = await fixture(t);
+  for (const testKey of ["", '<property name="test_key" value="invalid"/>']) {
+    await f.setReport(`<testcase name="invalid"><properties>
+      <property name="story" value="KAN-25"/>
+      <property name="case_id" value="TM-TC-05"/>
+      ${testKey}</properties></testcase>`);
+    await assert.rejects(
+      importStoryResults(f.options),
+      /Missing or invalid test_key/,
+    );
+  }
+  assert.equal(f.calls.length, 0);
+});
+
+test("direct import posts exactly the previewed XML and persists the execution", async (t) => {
   const f = await fixture(t, ["KAN-25", "QA-1"]);
   const preview = await prepareStoryResults(f.options);
-  const result = await importStoryResults(f.options, preview.digest);
+  const result = await importStoryResults(f.options);
   assert.deepEqual(result.executions, [
     { story: "KAN-25", testExecutionKey: "KAN-99" },
     { story: "QA-1", testExecutionKey: "QA-99" },
@@ -180,6 +189,7 @@ test("confirmed import posts exactly the previewed XML and persists the executio
     assert.equal(request.url, group.endpoint);
     assert.equal(request.request?.method, "POST");
     assert.equal(request.request?.body, group.payload);
+    assert.doesNotMatch(group.payload, /TM-TC-10/);
     assert.equal(
       new URL(request.url).searchParams.get("testPlanKey"),
       group.testPlanKey,
@@ -190,33 +200,29 @@ test("confirmed import posts exactly the previewed XML and persists the executio
     assert.equal(feature.testExecutionKey, group.projectKey + "-99");
     assert.equal(feature.title, "Demo");
   }
-  await assert.rejects(
-    importStoryResults(f.options, preview.digest),
-    /already imported/,
-  );
   assert.equal(f.calls.length, 3);
+  assert.deepEqual(
+    (await importStoryResults(f.options)).executions,
+    result.executions,
+  );
+  assert.equal(f.calls.length, 6);
 });
 
-test("partial dispatch stops at first uncertainty and blocks retries for that story", async (t) => {
+test("import stops at the first Xray error and shows its response text", async (t) => {
   const f = await fixture(t, ["KAN-25", "QA-1", "ZZ-1"]);
   const fetcher: typeof fetch = async (url, request) => {
     if (new URL(String(url)).searchParams.get("projectKey") === "QA")
-      return new Response(null, { status: 502 });
+      return new Response("Invalid Test Plan (synthetic-secret)", {
+        status: 502,
+      });
     return f.options.fetch(url, request);
   };
-  const options = { ...f.options, fetch: fetcher };
-  const preview = await prepareStoryResults(options);
   await assert.rejects(
-    importStoryResults(options, preview.digest),
-    /stopped at QA-1.*HTTP 502/,
+    importStoryResults({ ...f.options, fetch: fetcher }),
+    /stopped at QA-1.*HTTP 502: Invalid Test Plan \(\[redacted\]\)/,
   );
   assert.deepEqual(f.output, ["KAN-25: Test Execution KAN-99"]);
   assert(!f.calls.some(({ url }) => url.includes("ZZ-35")));
-  const retry = { ...options, story: "QA-1" };
-  await assert.rejects(
-    importStoryResults(retry, (await prepareStoryResults(retry)).digest),
-    /Pending import/,
-  );
 });
 
 test("import combines repeated observations for the same Test key without masking failure", async (t) => {

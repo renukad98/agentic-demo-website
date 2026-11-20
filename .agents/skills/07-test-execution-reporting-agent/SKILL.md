@@ -13,6 +13,10 @@ Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules
 
 Inspect commands and data isolation before running. Execute lint, formatting check, typecheck, automated regression tests and build as applicable, plus approved persisted Playwright tests for future features. Record command, environment, time, exit code, counts and artifact revisions. Analyze failures as product defects, test defects or environment blockers; route fixes to their owner. Update all mappings using actual results. Preserve first failure evidence even if a later rerun passes.
 
+### Chat Playwright results handoff
+
+For `qa run [STORY-KEY]`, resolve the explicit Story or use `qa/current.json` and read its feature record. Apply the pause policy. Run the persisted Playwright tests with `npm run test:e2e -- --grep "@STORY-KEY(?![0-9])"`, substituting the resolved Story key. Record the Playwright outcome. Hand the fresh JUnit report to Agent 08 to preview the same Story, including failed tests when Playwright produced a fresh report. Stop if Playwright did not produce a fresh report. Agent 08 handles the exact preview and the subsequent `OK` gate.
+
 ## Inputs
 
 Reviewed implementation/tests, test commands, test target, baseline and traceability.

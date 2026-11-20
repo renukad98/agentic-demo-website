@@ -6,23 +6,18 @@ try {
   const { values } = parseArgs({
     options: {
       "dry-run": { type: "boolean" },
-      confirm: { type: "string" },
       report: { type: "string" },
       story: { type: "string" },
     },
   });
-  if (values["dry-run"] && values.confirm !== undefined)
-    throw new Error("Use either --dry-run or --confirm, not both");
   config({ quiet: true });
-  await importStoryResults(
-    {
-      root: process.cwd(),
-      env: process.env,
-      report: values.report,
-      story: values.story,
-    },
-    values.confirm,
-  );
+  await importStoryResults({
+    root: process.cwd(),
+    env: process.env,
+    report: values.report,
+    story: values.story,
+    dryRun: values["dry-run"],
+  });
 } catch (error) {
   console.error(
     error instanceof Error ? error.message : "Xray results import failed",

@@ -21,11 +21,13 @@ Show the helper's exact preview verbatim using `preview "<exact qa command>" <pa
 
 Process one Test at a time. Call `xray_create_manual_test` only for an approved create. Call `xray_resolve_test_keys` with the issue ID returned by creation or verified by duplicate review, and verify the Manual type and exact steps. Save the mapping with `record <STORY-KEY> <case-id> <test-key>` before the approved link call. For skip, verify the existing link by readback. Verify each link against the same Story with coverage readback. On the first error or uncertain result, stop and report completed and pending rows. Reconcile by reads before a fresh preview. After all rows are verified, run `complete "<exact qa command>" <evidence-digest> <verified-links-JSON>`, passing the verified case-to-key map. Report one summary table with case, decision, Test key, and link outcome. Result import is outside this route.
 
-### Per-Story Playwright results preview
+### Per-Story Playwright results import
 
-For `qa xray-results STORY-KEY`, read `qa/STORY-KEY/feature.json`. For the no-key form resolve the Story from `qa/current.json`. Apply the pause policy and run `npm run xray:import-by-story -- --dry-run --story STORY-KEY` from the repository root. Show the exact preview JSON, including target, XML, digest, and skipped or unpublished cases.
+For `qa xray-results [STORY-KEY]` or the Agent 07 handoff from `qa run [STORY-KEY]`, resolve the explicit Story or use `qa/current.json`. Read its feature record and apply the pause policy. Use the existing report for `qa xray-results`. Run `npm run xray:import-by-story -- --dry-run --story STORY-KEY` from the repository root and show the exact preview JSON, including the target, XML, and skipped or unpublished cases.
 
-Offer `OK` only when the preview contains an eligible import with a configured tenant and an approved `xray_import_story_results` tool is available. After explicit approval, recheck the same preview and digest. Dispatch only through the authorized tool for that Story and digest, then read back the saved `testExecutionKey`. If the tool is unavailable, stop at the preview. The CLI can be invoked separately by the owner under the approval policy. Reconcile uncertain attempts by read before any retry.
+If there is an eligible import, offer the owner the exact scoped action with “Reply OK to import these Playwright results for STORY-KEY.” After explicit `OK`, rerun the dry run and compare the preview JSON to the approved preview. Ask for fresh approval if it changed. Run `npm run xray:import-by-story -- --story STORY-KEY` once and read back `testExecutionKey` from the feature record. Stop on an import error and reconcile any uncertain outcome before retrying.
+
+CI imports automatically after Playwright on pushes to main under the [results import policy](../../../docs/agent-framework/approval-policy.md#per-story-playwright-results-import).
 
 ### Reviewed Manual Test batches
 
