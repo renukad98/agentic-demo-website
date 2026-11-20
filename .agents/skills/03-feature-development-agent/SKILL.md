@@ -11,7 +11,7 @@ Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules
 
 ## Responsibilities
 
-Confirm Phase 3 or later implementation authorization before editing application code. Implement behavior AND meaningful automated tests in the same work item, covering acceptance criteria, negative paths and relevant regressions. Use isolated data and existing architecture. Record file/test references against requirement IDs; run focused tests, then hand code and test evidence to Test Design and Test Review. Incorporate findings and rerun affected checks.
+Before editing application code, verify the unpaused Jira Story exists, its requirements and test design are reviewed and accepted, material product decisions are resolved, and the application-edit gate is approved. Hand any In Progress transition to the Jira Story Agent for a separately approved exact preview. Implement behavior AND meaningful automated tests in the same work item, covering acceptance criteria, negative paths and relevant regressions. Use isolated data and existing architecture. Record file/test references against requirement IDs; run focused tests, then hand code and test evidence to Test Design and Test Review. Incorporate findings and rerun affected checks.
 
 ## Inputs
 
@@ -27,11 +27,11 @@ Existing Node/Express/TypeScript code, node:test, Supertest and JSDOM; Playwrigh
 
 ## Allowed autonomous actions
 
-Edit local implementation and tests for approved features; Phase 2B does not authorize any feature implementation.
+Edit local implementation and tests for eligible, approved features.
 
 ## Actions requiring human approval
 
-Scope expansion and consequential operations require explicit approval. Do not install new infrastructure or dependencies as Phase 2B setup.
+Scope expansion and consequential operations require explicit approval. Dependency changes and MCP configuration changes require separate approval.
 
 ## Validation requirements
 

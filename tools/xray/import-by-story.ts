@@ -22,6 +22,7 @@ const featureSchema = z
     stage: z.string(),
     paused: z.boolean().optional(),
     completedStages: z.array(z.string()).optional(),
+    pendingStages: z.array(z.string()).optional(),
     testPlanKey: key.optional(),
   })
   .passthrough();
@@ -31,6 +32,7 @@ export interface ResultsOptions {
   story?: string | undefined;
   report?: string | undefined;
   dryRun?: boolean | undefined;
+  qaRun?: boolean | undefined;
   env: NodeJS.ProcessEnv;
   fetch?: typeof fetch | undefined;
   print?: ((message: string) => void) | undefined;
@@ -200,7 +202,13 @@ export async function prepareStoryResults(options: ResultsOptions) {
       ...resultReport(rows),
     });
   }
-  return { tenant, imports, skipped, notPublished };
+  return {
+    tenant,
+    imports,
+    skipped,
+    notPublished,
+    ...(options.qaRun && imports.length ? { completeStage: "executed" } : {}),
+  };
 }
 
 type ImportGroup = Awaited<
@@ -211,18 +219,26 @@ async function recordExecution(
   root: string,
   group: ImportGroup,
   executionKey: string,
+  qaRun: boolean,
 ) {
   const { file, feature, source } = await loadFeature(root, group.story);
   if (feature.testPlanKey !== group.testPlanKey)
     throw new Error(`Test Plan changed for ${group.story} while importing`);
+  const execution = { ...feature, testExecutionKey: executionKey };
+  if (qaRun) {
+    execution.completedStages = [
+      ...new Set([...(feature.completedStages ?? []), "executed"]),
+    ];
+    if (feature.pendingStages)
+      execution.pendingStages = feature.pendingStages.filter(
+        (stage) => stage !== "executed",
+      );
+  }
   const temp = resolve(dirname(file), `.${randomUUID()}.tmp`);
   try {
-    await writeFile(
-      temp,
-      JSON.stringify({ ...feature, testExecutionKey: executionKey }, null, 2) +
-        "\n",
-      { flag: "wx" },
-    );
+    await writeFile(temp, JSON.stringify(execution, null, 2) + "\n", {
+      flag: "wx",
+    });
     if ((await readFile(file, "utf8")) !== source)
       throw new Error(
         `Feature record changed for ${group.story} while importing`,
@@ -281,6 +297,8 @@ async function post(
 
 export async function importStoryResults(options: ResultsOptions) {
   const { env, root, fetch: fetcher = fetch, print = console.log } = options;
+  if (options.qaRun && !options.story)
+    throw new Error("--qa-run requires --story");
   const preview = await prepareStoryResults(options);
   if (options.dryRun) {
     print(JSON.stringify(preview, null, 2));
@@ -335,7 +353,7 @@ export async function importStoryResults(options: ResultsOptions) {
         throw new Error(
           "Xray returned a Test Execution key outside the target project",
         );
-      await recordExecution(root, group, executionKey);
+      await recordExecution(root, group, executionKey, options.qaRun === true);
       executions.push({ story: group.story, testExecutionKey: executionKey });
       print(`${group.story}: Test Execution ${executionKey}`);
     } catch (error) {

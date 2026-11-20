@@ -5,6 +5,7 @@ import { importStoryResults } from "./import-by-story.js";
 try {
   const { values } = parseArgs({
     options: {
+      "qa-run": { type: "boolean" },
       "dry-run": { type: "boolean" },
       report: { type: "string" },
       story: { type: "string" },
@@ -17,6 +18,7 @@ try {
     report: values.report,
     story: values.story,
     dryRun: values["dry-run"],
+    qaRun: values["qa-run"],
   });
 } catch (error) {
   console.error(
