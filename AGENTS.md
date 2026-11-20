@@ -20,6 +20,10 @@ Local implementation, policy documentation, and synthetic tests for the signed-s
 
 Work only in `agentic-demo-website`. Preserve existing functionality and user changes. Do not access or modify `ai-qa-demo` or `ai-qa-automation-demo`. Never expose, copy, or hardcode credentials; do not read `.env` or connector secret stores into artifacts.
 
+## Per-Story Playwright results import
+
+The [results import policy](docs/agent-framework/approval-policy.md#per-story-playwright-results-import) authorizes a single local CLI import after the owner replies explicitly with `OK` to the latest preview for that Story. This exception to the Phase 5D external-write restrictions also authorizes automatic results imports in the push-to-main CI workflow after Playwright. Apply the pause policy to both paths.
+
 ## Current scope: Phase 5D
 
 Local reusable framework implementation, existing instruction updates, mock-based tests and isolated validation are authorized. No additional feature, dependency installation/update, MCP registration/configuration change, Jira/Xray write, commit, push or pull request is authorized. External operations remain disabled even when an approval object is present. This restriction applies except to the route described in [Opt-in Agent 08 Manual Tests and Story links](docs/agent-framework/approval-policy.md#opt-in-agent-08-manual-tests-and-story-links). For that route, in an opted-in owner local session subject to applicable managed controls, the owner's explicit `OK` on the exact chat preview authorizes only the listed Manual Test creations and Story links. See docs/agent-framework/phase5d-framework.md.

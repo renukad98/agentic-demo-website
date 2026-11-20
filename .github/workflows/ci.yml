@@ -36,4 +36,22 @@ jobs:
       - run: npm test
       - run: npm run test:framework
       - run: npm exec -- playwright install --with-deps chromium
-      - run: npm run test:e2e -- --project=chromium
+      - id: playwright
+        run: npm run test:e2e -- --project=chromium
+
+      - name: Import Playwright results into Xray
+        if: >-
+          ${{ !cancelled() && github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' &&
+          (steps.playwright.outcome == 'success' || steps.playwright.outcome == 'failure') }}
+        env:
+          XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
+          XRAY_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
+          JIRA_BASE_URL: ${{ vars.JIRA_BASE_URL }}
+          XRAY_BASE_URL: ${{ vars.XRAY_BASE_URL }}
+        run: |
+          if [[ -z "$XRAY_CLIENT_ID" || -z "$XRAY_CLIENT_SECRET" ]]; then
+            echo "::notice::Skipping Xray results import because Xray credentials are missing."
+            exit 0
+          fi
+          npm run xray:import-by-story

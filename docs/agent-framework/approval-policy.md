@@ -14,9 +14,13 @@ Phase 5D authorizes local reusable framework implementation, instruction updates
 
 ## Per-Story Playwright results import
 
-The results route requires separate authorization under the repository's managed controls. The owner must approve the exact dry-run preview, including the Jira tenant, endpoint, project, Test Plan, XML payload and SHA-256 digest. A live CLI invocation requires `XRAY_ENABLE_WRITES=true` and the matching `--confirm` digest. In chat, only the owner's explicit `OK` on the latest exact preview authorizes dispatch through an approved connector tool. A CLI invocation without confirmation only previews. Changes to the target or payload require a fresh preview and approval.
+This results-only route is an exception to the Phase 5D external-write restrictions and remains subject to applicable managed controls. Use the CLI with Xray credentials supplied by the environment. The CLI imports by default. Pass the `--dry-run` flag to print the preview without contacting Xray.
 
-Only results mapped to published Test keys are eligible. Done or paused Stories and Stories without a Test Plan are skipped. Record the returned key as `testExecutionKey` in the Story feature record. Stop at the first import error and reconcile any pending dispatch by read before attempting another import. The results route excludes CI, Test Plan creation, plan membership edits and other Jira writes.
+For local chat imports, Agent 07 can hand off the fresh report from `qa run` to Agent 08. The `qa xray-results` command uses the existing report. In either case, show the exact single-Story preview with the target, Test Plan, XML and skipped or unpublished cases. The owner’s explicit `OK` on the latest exact preview authorizes one local import for that Story. Rerun the dry run before dispatch and ask for fresh approval if the preview changes. The owner may also invoke the CLI directly.
+
+CI imports automatically after Playwright on pushes to main, including merges. Pull requests and manual workflow runs omit the import. CI uses GitHub secrets for Xray credentials and skips with a notice if they are missing.
+
+Only results mapped to published Test keys are eligible. Reporter-marked unpublished cases appear in the preview and are skipped. Done or paused Stories and Stories without a Test Plan are skipped. Each successful import saves the returned `testExecutionKey` in its Story feature record. Stop at the first import error and reconcile an uncertain remote outcome before retrying.
 
 ## Autonomous actions
 

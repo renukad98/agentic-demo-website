@@ -1,9 +1,9 @@
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { stripVTControlCharacters } from "node:util";
 import { z } from "zod";
-import { noSymlinks, objectDigest, within } from "../agentic/artifacts.js";
+import { noSymlinks, within } from "../agentic/artifacts.js";
 import {
   addProperty,
   caseId,
@@ -30,6 +30,7 @@ export interface ResultsOptions {
   root: string;
   story?: string | undefined;
   report?: string | undefined;
+  dryRun?: boolean | undefined;
   env: NodeJS.ProcessEnv;
   fetch?: typeof fetch | undefined;
   print?: ((message: string) => void) | undefined;
@@ -115,8 +116,6 @@ export async function prepareStoryResults(options: ResultsOptions) {
       throw new Error(`Missing or invalid story on JUnit test ${name}`);
     const storyKey = stories[0]!;
     const ids = propertyValues(test, "case_id");
-    if (ids.length !== 1 || !caseId.test(ids[0] ?? ""))
-      throw new Error(`Missing or invalid case ID on JUnit test ${name}`);
     const keys = propertyValues(test, "test_key");
     const publication = propertyValues(test, "publication");
     if (
@@ -125,14 +124,14 @@ export async function prepareStoryResults(options: ResultsOptions) {
       publication[0] === "not published"
     ) {
       if (!story || story === storyKey)
-        notPublished.push({ story: storyKey, caseId: ids[0]!, test: name });
+        notPublished.push({
+          story: storyKey,
+          caseId: ids[0] ?? "",
+          test: name,
+        });
       continue;
     }
-    if (
-      keys.length !== 1 ||
-      !issueKey.test(keys[0] ?? "") ||
-      publication.length
-    )
+    if (keys.length !== 1 || !issueKey.test(keys[0] ?? ""))
       throw new Error(`Missing or invalid test_key on JUnit test ${name}`);
     if (!story || story === storyKey) {
       const rows = groups.get(storyKey) ?? [];
@@ -177,8 +176,12 @@ export async function prepareStoryResults(options: ResultsOptions) {
         ),
       );
     for (const row of rows) {
-      const id = propertyValues(row, "case_id")[0]!;
-      if (mapping[id] !== propertyValues(row, "test_key")[0])
+      const ids = propertyValues(row, "case_id");
+      const id = ids[0] ?? "";
+      if (
+        ids.length !== 1 ||
+        mapping[id] !== propertyValues(row, "test_key")[0]
+      )
         throw new Error(
           `Published Test mapping changed for ${storyKey} ${id}; regenerate JUnit`,
         );
@@ -197,8 +200,7 @@ export async function prepareStoryResults(options: ResultsOptions) {
       ...resultReport(rows),
     });
   }
-  const preview = { tenant, imports, skipped, notPublished };
-  return { ...preview, digest: objectDigest(preview) };
+  return { tenant, imports, skipped, notPublished };
 }
 
 type ImportGroup = Awaited<
@@ -277,77 +279,28 @@ async function post(
   return (await response.json()) as unknown;
 }
 
-export async function importStoryResults(
-  options: ResultsOptions,
-  confirm?: string,
-) {
+export async function importStoryResults(options: ResultsOptions) {
   const { env, root, fetch: fetcher = fetch, print = console.log } = options;
   const preview = await prepareStoryResults(options);
-  if (confirm === undefined) {
+  if (options.dryRun) {
     print(JSON.stringify(preview, null, 2));
     return { preview };
   }
-  if (confirm !== preview.digest)
-    throw new Error(
-      "Confirmation does not match the current dry-run payload digest",
-    );
-  if (env.XRAY_ENABLE_WRITES !== "true")
-    throw new Error("Live results import requires XRAY_ENABLE_WRITES=true");
   if (!preview.imports.length) {
     print(JSON.stringify(preview, null, 2));
     return { executions: [] };
   }
-  if (!preview.tenant)
-    throw new Error("Set JIRA_BASE_URL and regenerate the dry-run preview");
+
   const clientId = env.XRAY_CLIENT_ID?.trim();
   const clientSecret = env.XRAY_CLIENT_SECRET?.trim();
   if (!clientId || !clientSecret)
     throw new Error("Xray credentials are required for live import");
+
   const executions = [];
   let token: string | undefined;
   for (const group of preview.imports) {
-    const directory = await safePath(
-      root,
-      `artifacts/qa/${group.story}/xray-results`,
-    );
-    await mkdir(directory, { recursive: true });
-    const reservation = resolve(directory, "pending.json");
-    await writeFile(
-      reservation,
-      JSON.stringify({
-        digest: preview.digest,
-        groupDigest: objectDigest(group),
-        testPlanKey: group.testPlanKey,
-      }),
-      { flag: "wx" },
-    ).catch((error: NodeJS.ErrnoException) => {
-      if (error.code === "EEXIST")
-        throw new Error(
-          `Pending import for ${group.story}; reconcile it before retrying`,
-        );
-      throw error;
-    });
-    const receipt = resolve(
-      directory,
-      `${objectDigest({ tenant: preview.tenant, group }).slice(7)}.json`,
-    );
-    let dispatched = false;
     let executionKey: string | undefined;
     try {
-      const previous = await readFile(receipt, "utf8").catch(
-        (error: NodeJS.ErrnoException) => {
-          if (error.code !== "ENOENT") throw error;
-        },
-      );
-      if (previous !== undefined) {
-        const saved = z
-          .object({ testExecutionKey: key })
-          .parse(JSON.parse(previous));
-        throw new Error(
-          `Results already imported as ${saved.testExecutionKey}`,
-        );
-      }
-
       if (!token) {
         const auth = new URL("/api/v2/authenticate", group.endpoint);
         token = z
@@ -366,10 +319,7 @@ export async function importStoryResults(
             ),
           );
       }
-      if ((await prepareStoryResults(options)).digest !== preview.digest)
-        throw new Error("Preview changed before dispatch");
 
-      dispatched = true;
       const response = await post(
         fetcher,
         group.endpoint,
@@ -385,35 +335,21 @@ export async function importStoryResults(
         throw new Error(
           "Xray returned a Test Execution key outside the target project",
         );
-      await writeFile(
-        receipt,
-        JSON.stringify({
-          story: group.story,
-          testPlanKey: group.testPlanKey,
-          testExecutionKey: executionKey,
-        }),
-        { flag: "wx" },
-      );
       await recordExecution(root, group, executionKey);
       executions.push({ story: group.story, testExecutionKey: executionKey });
       print(`${group.story}: Test Execution ${executionKey}`);
-      await rm(reservation);
     } catch (error) {
-      if (!dispatched) await rm(reservation);
-      const message =
-        error instanceof XrayHttpError ? error.message : undefined;
-      if (
-        !dispatched &&
-        error instanceof Error &&
-        /^(?:Results already imported|Preview changed)/.test(error.message)
-      )
-        throw error;
-      if (!dispatched)
-        throw new Error(
-          `Xray authentication or local import preparation failed for ${group.story}${message ? ` (${message})` : ""}`,
-        );
+      const detail =
+        error instanceof XrayHttpError
+          ? error.message
+          : redactXrayError(
+              error instanceof Error ? error.message : String(error),
+              token
+                ? [clientId, clientSecret, token]
+                : [clientId, clientSecret],
+            );
       throw new Error(
-        `Xray import stopped at ${group.story}${executionKey ? ` (returned ${executionKey})` : ""}${message ? ` (${message})` : ""}; reconcile the pending import before retrying. Remaining stories were not attempted.`,
+        `Xray import stopped at ${group.story}${executionKey ? ` (returned ${executionKey})` : ""}: ${detail}`,
       );
     }
   }
