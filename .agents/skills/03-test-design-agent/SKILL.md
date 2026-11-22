@@ -11,7 +11,7 @@ Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules
 
 ## Responsibilities
 
-Use the test-case template. For each requirement define independent preconditions, isolated data, action/expected-result steps and a clear oracle. Include risk-appropriate negative and boundary coverage and user-visible Playwright cases. Review existing developer tests before adding duplicates. Map every case to requirements and hand off to Test Review.
+Use the test-case template. For each requirement define independent preconditions, isolated data, action/expected-result steps and a clear oracle. Include risk-appropriate negative and boundary coverage and user-visible Playwright cases. Review existing developer tests before adding duplicates. Map every case to requirements and hand off to Test Review. Specify each required automation level (unit, API, JSDOM or browser) and its observable outcomes so Agents 06 and 07 can divide mixed-level cases. Reassess coverage after implementation and send revised cases or expectations back for review.
 
 Prefer one user action and its independently observable expected result per numbered step. Use the columns `Step | Action | Test data | Expected observable result` for structured cases. Put fixture setup and reset instructions in preconditions or the relevant step’s data. Identify shared setup explicitly if a step uses the state produced by an earlier step. Split compound actions when there is a separate assertion to verify, and preserve the original case and traceability IDs when refining existing steps.
 

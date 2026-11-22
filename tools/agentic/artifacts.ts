@@ -104,11 +104,48 @@ export async function verifyRepository(root: string): Promise<string> {
   const pkg = JSON.parse(
     await readFile(resolve(actual, "package.json"), "utf8"),
   );
+  const name = "agentic-demo-website";
+  if (pkg.name === name && basename(actual) === name) return actual;
+  const container = dirname(actual);
+  const primary = dirname(container);
   if (
-    basename(actual) !== "agentic-demo-website" ||
-    pkg.name !== "agentic-demo-website"
+    pkg.name !== name ||
+    basename(container) !== ".worktrees" ||
+    basename(primary) !== name
   )
     throw new Error("Unauthorized repository");
+
+  const pointer = resolve(actual, ".git");
+  const registration = resolve(primary, ".git", "worktrees", basename(actual));
+  await noSymlinks(primary, pointer);
+  await noSymlinks(primary, registration);
+  const gitdir = /^gitdir: (.+)$/.exec(
+    (await readFile(pointer, "utf8")).trim(),
+  )?.[1];
+  if (
+    !gitdir ||
+    relative(registration, await realpath(resolve(actual, gitdir))) !== ""
+  )
+    throw new Error("Unauthorized worktree registration");
+  const backlink = resolve(registration, "gitdir");
+  const common = resolve(registration, "commondir");
+  await noSymlinks(primary, backlink);
+  await noSymlinks(primary, common);
+  if (
+    relative(
+      pointer,
+      await realpath(
+        resolve(registration, (await readFile(backlink, "utf8")).trim()),
+      ),
+    ) !== "" ||
+    relative(
+      resolve(primary, ".git"),
+      await realpath(
+        resolve(registration, (await readFile(common, "utf8")).trim()),
+      ),
+    ) !== ""
+  )
+    throw new Error("Unauthorized worktree registration");
   return actual;
 }
 export async function createRun(

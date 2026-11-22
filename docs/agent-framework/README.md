@@ -6,7 +6,7 @@ Phase 5E-B adds the [secure read-only Xray transport](xray-read-only-adapter.md)
 
 Current Phase 5D implementation and operating instructions: [Reusable framework](phase5d-framework.md). Local coordinator/contracts, identity mapping, normalizers and mock-tested Xray planning are implemented; remote writes remain disabled. The historical setup notes below must be read with the current scope.
 
-This repository uses root `AGENTS.md` for durable Codex instructions and ten reusable role skills under `.agents/skills/`. This is an instruction framework, with manual/sequential orchestration, not a new application feature or autonomous service. Phase 5D preserves website behavior and dependencies; framework tests and instructions are added.
+This repository uses root `AGENTS.md` for durable Codex instructions and eleven reusable role skills under `.agents/skills/`. This is an instruction framework, with manual/sequential orchestration, not a new application feature or autonomous service. Phase 5D preserves website behavior and dependencies; framework tests and instructions are added.
 
 ## Codex compatibility and use
 
@@ -23,26 +23,27 @@ For a bounded task: `Use $test-review-agent to review <local test-design path> a
 
 ## Roles
 
-| Skill                                                                                          | Responsibility                                                    |
-| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [jira-story-agent](../../.agents/skills/01-jira-story-agent/SKILL.md)                             | Retrieve source stories; prepare eventual status-change proposals |
-| [requirements-analysis-agent](../../.agents/skills/02-requirements-analysis-agent/SKILL.md)       | Derive testable requirements and resolve ambiguities              |
-| [test-design-agent](../../.agents/skills/03-test-design-agent/SKILL.md)                           | Design cases and coverage                                         |
-| [test-review-agent](../../.agents/skills/04-test-review-agent/SKILL.md)                           | Review coverage, oracles and test quality                         |
-| [feature-development-agent](../../.agents/skills/05-feature-development-agent/SKILL.md)           | Implement approved behavior and associated automated tests        |
-| [playwright-automation-agent](../../.agents/skills/07-playwright-automation-agent/SKILL.md)       | Implement repeatable browser automation                           |
-| [test-execution-reporting-agent](../../.agents/skills/08-test-execution-reporting-agent/SKILL.md) | Execute checks and analyze evidence                               |
-| [xray-test-publisher-agent](../../.agents/skills/09-xray-test-publisher-agent/SKILL.md)           | Prepare reviewed payloads; publish only when separately approved  |
-| [github-integration-agent](../../.agents/skills/10-github-integration-agent/SKILL.md)             | Read repository metadata; prepare reviewed GitHub changes         |
-| [qa-orchestrator](../../.agents/skills/11-qa-orchestrator/SKILL.md)                               | Own handoffs, evidence, approval gates and final readiness        |
+| Skill                                                                                             | Responsibility                                                         |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| [jira-story-agent](../../.agents/skills/01-jira-story-agent/SKILL.md)                             | Retrieve source stories; prepare eventual status-change proposals      |
+| [requirements-analysis-agent](../../.agents/skills/02-requirements-analysis-agent/SKILL.md)       | Derive testable requirements and resolve ambiguities                   |
+| [test-design-agent](../../.agents/skills/03-test-design-agent/SKILL.md)                           | Design cases and coverage                                              |
+| [test-review-agent](../../.agents/skills/04-test-review-agent/SKILL.md)                           | Review coverage, oracles and test quality                              |
+| [feature-development-agent](../../.agents/skills/05-feature-development-agent/SKILL.md)           | Implement approved behavior and associated automated tests             |
+| [test-implementation-agent](../../.agents/skills/06-test-implementation-agent/SKILL.md)           | Map or implement approved non-browser cases and hand off browser cases |
+| [playwright-automation-agent](../../.agents/skills/07-playwright-automation-agent/SKILL.md)       | Implement repeatable browser automation                                |
+| [test-execution-reporting-agent](../../.agents/skills/08-test-execution-reporting-agent/SKILL.md) | Execute checks and analyze evidence                                    |
+| [xray-test-publisher-agent](../../.agents/skills/09-xray-test-publisher-agent/SKILL.md)           | Prepare reviewed payloads; publish only when separately approved       |
+| [github-integration-agent](../../.agents/skills/10-github-integration-agent/SKILL.md)             | Read repository metadata; prepare reviewed GitHub changes              |
+| [qa-orchestrator](../../.agents/skills/11-qa-orchestrator/SKILL.md)                               | Own handoffs, evidence, approval gates and final readiness             |
 
 Each skill defines responsibilities, inputs, outputs, dependencies, autonomous scope, approval requirements, validation, and error handling. All roles inherit the [approval policy](approval-policy.md); credentials and external write permissions are never supplied by skill invocation.
 
 ## Workflow and artifact contract
 
-Jira Story → Requirements Analysis → Test Design → Design Review and implementation approval → Feature Development with unit/API tests → Playwright Automation → Coverage/Test Review → Test Execution → separately approved Xray stages → separately approved GitHub delivery.
+Jira Story → Requirements Analysis → Test Design → Design Review and implementation approval → Feature Development with unit/API tests → Test Implementation → Playwright Automation → Coverage/Test Review → Test Execution → separately approved Xray stages → separately approved GitHub delivery.
 
-Test Design precedes development. Development includes associated unit/API tests immediately; Playwright Automation owns browser tests. Test Design subsequently checks and extends coverage; review and execution can send work back to development or design. Browser automation implements reviewed cases. This sequence does not postpone developers' tests until the QA stage.
+Test Design precedes development. Development includes associated unit/API tests immediately. Agent 06 maps those tests to approved cases and fills non-browser gaps with `qa test-implement`. Agent 07 owns browser tests and receives the approved browser case list. Test Design subsequently checks and extends coverage; review and execution can send work back to development or design. Browser automation implements reviewed cases. This sequence does not postpone developers' tests until the QA stage.
 
 For future approved work, keep a run under `artifacts/qa/<story-key>/<run-id>/` inside this repository, outside served assets. Run IDs must be unique. Do not create feature artifacts during Phase 2B just to suggest work has begun. Use these templates:
 

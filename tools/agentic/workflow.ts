@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   inputSchema,
+  caseImplementationSchema,
+  featureImplementationSchema,
   sourceSchema,
   requirementsSchema,
   scenariosSchema,
@@ -34,6 +36,11 @@ import {
   type ApprovalProvider,
 } from "./approvals.js";
 import { loadState, saveState } from "./state.js";
+import {
+  validateCaseImplementation,
+  validateFinalMappings,
+} from "./test-implementation.js";
+import { assertStoryUnpaused } from "./qa-next.js";
 import { recordAudit } from "./audit.js";
 
 const reviewed = z
@@ -42,6 +49,10 @@ const reviewed = z
     storyKey: inputSchema.shape.storyKey,
     sourceDigest: inputSchema.shape.sourceDigest,
     accepted: z.literal(true),
+    reviewDigest: inputSchema.shape.sourceDigest.optional(),
+    evidenceDigests: z
+      .record(z.string(), inputSchema.shape.sourceDigest)
+      .optional(),
     evidencePaths: z.array(z.string().min(1)).min(1),
   })
   .strict();
@@ -57,7 +68,11 @@ const schemas = {
   traceability: traceabilitySchema,
   execution: executionSchema,
   implementation,
+  featureImplementation: featureImplementationSchema,
+  caseImplementation: caseImplementationSchema,
+  browserImplementation: caseImplementationSchema,
   review: reviewed,
+  automationReview: reviewed,
   inventory: z
     .object({
       schemaVersion: z.literal("1.0.0"),
@@ -73,7 +88,9 @@ const required: Partial<Record<Stage, EvidenceKind[]>> = {
   DESIGN_REVIEWED: ["scenarios", "review"],
   IMPLEMENTATION_AUTHORIZED: ["requirements", "scenarios"],
   IMPLEMENTED: ["implementation", "inventory"],
-  AUTOMATION_REVIEWED: ["review", "traceability"],
+  TESTS_IMPLEMENTED: ["caseImplementation"],
+  BROWSER_IMPLEMENTED: ["browserImplementation"],
+  AUTOMATION_REVIEWED: ["review", "traceability", "inventory"],
   VALIDATED: ["execution"],
   LOCAL_READY: ["execution", "traceability"],
   XRAY_PROPOSED: ["proposal"],
@@ -83,6 +100,8 @@ const owners: Partial<Record<Stage, string>> = {
   ANALYZED: "requirements-analysis-agent",
   DESIGN_REVIEWED: "test-review-agent",
   IMPLEMENTED: "feature-development-agent",
+  TESTS_IMPLEMENTED: "test-implementation-agent",
+  BROWSER_IMPLEMENTED: "playwright-automation-agent",
   AUTOMATION_REVIEWED: "test-review-agent",
   VALIDATED: "test-execution-reporting-agent",
   LOCAL_READY: "qa-orchestrator",
@@ -117,6 +136,7 @@ export class Workflow {
     readonly input: WorkflowInput,
     private current: WorkflowState,
     private readonly provider: ApprovalProvider,
+    private readonly splitImplementation: boolean,
   ) {}
   get state(): WorkflowState {
     return structuredClone(this.current);
@@ -128,12 +148,14 @@ export class Workflow {
     const input = inputSchema.parse(raw);
     if (input.previousRunId) throw new Error("Use resume for previousRunId");
     await verifySource(input);
+    await assertStoryUnpaused(input.repository.root, input.storyKey);
     const run = await createRun(input.repository.root, input.storyKey);
     await writeExclusive(run.path, "manifest.json", {
       schemaVersion: "1.0.0",
       input,
       inputDigest: objectDigest(input),
       remoteWritesEnabled: false,
+      implementationWorkflow: "split",
     });
     const state: WorkflowState = {
       schemaVersion: "1.0.0",
@@ -148,7 +170,7 @@ export class Workflow {
       handoffs: [],
     };
     await saveState(run.path, state);
-    return new Workflow(run.path, input, state, provider);
+    return new Workflow(run.path, input, state, provider, true);
   }
   static async resume(
     raw: unknown,
@@ -181,7 +203,18 @@ export class Workflow {
       state.sourceDigest !== input.sourceDigest
     )
       throw new Error("Resume state mismatch");
-    const workflow = new Workflow(path, original, state, provider);
+    if (
+      manifest.implementationWorkflow !== undefined &&
+      manifest.implementationWorkflow !== "split"
+    )
+      throw new Error("Unknown implementation workflow");
+    const workflow = new Workflow(
+      path,
+      original,
+      state,
+      provider,
+      manifest.implementationWorkflow === "split",
+    );
     await workflow.assertFresh(input.sourceDigest);
     return workflow;
   }
@@ -207,6 +240,7 @@ export class Workflow {
     this.current = next;
   }
   async captureEvidence(text: string) {
+    await assertStoryUnpaused(this.input.repository.root, this.input.storyKey);
     const path = `executions/raw-${randomUUID()}.txt`;
     return { path, digest: await writeTextExclusive(this.path, path, text) };
   }
@@ -224,6 +258,7 @@ export class Workflow {
     }
   }
   async attach(kind: EvidenceKind, raw: unknown) {
+    await assertStoryUnpaused(this.input.repository.root, this.input.storyKey);
     if (this.current.status !== "ACTIVE")
       throw new Error("Resume active workflow before attaching evidence");
     const lastStage: Record<EvidenceKind, Stage> = {
@@ -231,15 +266,42 @@ export class Workflow {
       requirements: "DISCOVERED",
       scenarios: "ANALYZED",
       implementation: "IMPLEMENTATION_AUTHORIZED",
-      inventory: "IMPLEMENTATION_AUTHORIZED",
-      review: "IMPLEMENTED",
-      traceability: "IMPLEMENTED",
+      featureImplementation: "IMPLEMENTATION_AUTHORIZED",
+      caseImplementation: "IMPLEMENTED",
+      browserImplementation: "TESTS_IMPLEMENTED",
+      inventory: this.splitImplementation
+        ? "BROWSER_IMPLEMENTED"
+        : "IMPLEMENTATION_AUTHORIZED",
+      review: this.splitImplementation ? "ANALYZED" : "IMPLEMENTED",
+      automationReview: "BROWSER_IMPLEMENTED",
+      traceability: this.splitImplementation
+        ? "BROWSER_IMPLEMENTED"
+        : "IMPLEMENTED",
       execution: "AUTOMATION_REVIEWED",
       proposal: "DELIVERY_PROPOSED",
     };
     if (stages.indexOf(this.current.stage) > stages.indexOf(lastStage[kind]))
       throw new Error("Evidence is frozen after its gate; create a new run");
+    const splitEvidence =
+      kind === "featureImplementation" ||
+      kind === "caseImplementation" ||
+      kind === "browserImplementation" ||
+      kind === "automationReview";
+    if (
+      (kind === "implementation" && this.splitImplementation) ||
+      (splitEvidence && !this.splitImplementation)
+    )
+      throw new Error(
+        "Evidence does not match the run's implementation workflow",
+      );
+    if (splitEvidence && this.current.stage !== lastStage[kind])
+      throw new Error("Implementation evidence submitted before its handoff");
     const evidence = schemas[kind].parse(raw);
+    if (
+      "designDigest" in evidence &&
+      evidence.designDigest !== this.current.evidence.scenarios?.digest
+    )
+      throw new Error("Stale reviewed design evidence");
     if (kind === "execution" && this.current.evidence.execution) {
       const previous = executionSchema.parse(await this.evidence("execution"));
       const incoming = executionSchema.parse(evidence);
@@ -276,8 +338,44 @@ export class Workflow {
     await verifySource(this.input);
     for (const kind of Object.keys(this.current.evidence) as EvidenceKind[]) {
       const proof = await this.evidence(kind);
-      if (kind === "review" || kind === "implementation")
-        await this.checkReferences(proof.evidencePaths);
+      if (
+        kind === "review" ||
+        kind === "automationReview" ||
+        kind === "implementation"
+      )
+        await this.checkReviewReferences(proof);
+      if (kind === "featureImplementation") {
+        const feature = featureImplementationSchema.parse(proof);
+        await this.checkFiles(feature.implementationFiles);
+        await this.checkFiles(feature.developerTestFiles);
+      }
+      if (kind === "caseImplementation" || kind === "browserImplementation")
+        await this.checkFiles(caseImplementationSchema.parse(proof).files);
+    }
+  }
+  private async checkReviewReferences(proof: z.infer<typeof reviewed>) {
+    if (!this.splitImplementation) {
+      await this.checkReferences(proof.evidencePaths);
+      return;
+    }
+    for (const path of proof.evidencePaths) {
+      const digest = proof.evidenceDigests?.[path];
+      if (!digest) throw new Error("Review evidence digest is required");
+      await this.checkReferences([path], digest);
+    }
+  }
+  private async checkFiles(files: Record<string, string>) {
+    const root = this.input.repository.root;
+    for (const [file, digest] of Object.entries(files)) {
+      if (this.input.sourceFiles[file] !== digest)
+        throw new Error(
+          "Implementation file is absent or stale in the source manifest: " +
+            file,
+        );
+      const path = within(root, file);
+      await noSymlinks(root, path);
+      if (fingerprint(await readFile(path)) !== digest)
+        throw new Error("Stale implementation file: " + file);
     }
   }
   private async coverage() {
@@ -287,6 +385,22 @@ export class Workflow {
       await this.evidence("traceability"),
     );
     const inventory = schemas.inventory.parse(await this.evidence("inventory"));
+    if (this.splitImplementation) {
+      const local = caseImplementationSchema.parse(
+        await this.evidence("caseImplementation"),
+      );
+      const browser = caseImplementationSchema.parse(
+        await this.evidence("browserImplementation"),
+      );
+      validateFinalMappings(
+        this.input,
+        [...local.mappings, ...browser.mappings],
+        inventory.identities,
+        mapping.rows,
+        cases.scenarios,
+        req.requirements,
+      );
+    }
     const ids = new Set(
       inventory.identities.map(
         (item) => `${item.repository}:${item.runner}:${item.automationId}`,
@@ -339,9 +453,19 @@ export class Workflow {
     approvalReference = "",
   ) {
     roles.parse(role);
+    await assertStoryUnpaused(this.input.repository.root, this.input.storyKey);
     if (this.current.status !== "ACTIVE")
       throw new Error("Workflow is suspended");
-    if (stages.indexOf(target) !== stages.indexOf(this.current.stage) + 1)
+    const sequence: readonly Stage[] = this.splitImplementation
+      ? stages
+      : stages.filter(
+          (stage) =>
+            stage !== "TESTS_IMPLEMENTED" && stage !== "BROWSER_IMPLEMENTED",
+        );
+    if (
+      !sequence.includes(target) ||
+      sequence.indexOf(target) !== sequence.indexOf(this.current.stage) + 1
+    )
       throw new Error("Invalid workflow transition");
     await this.assertFresh(currentSourceDigest);
     if (externalVerified.has(target))
@@ -350,12 +474,51 @@ export class Workflow {
       );
     if (owners[target] && owners[target] !== role)
       throw new Error("Incorrect role handoff");
-    for (const kind of required[target] ?? []) await this.evidence(kind);
+    const requiredEvidence =
+      this.splitImplementation && target === "IMPLEMENTED"
+        ? (["featureImplementation"] as const)
+        : this.splitImplementation && target === "AUTOMATION_REVIEWED"
+          ? (["automationReview", "traceability", "inventory"] as const)
+          : (required[target] ?? []);
+    for (const kind of requiredEvidence) await this.evidence(kind);
     if (target === "DESIGN_REVIEWED" || target === "AUTOMATION_REVIEWED") {
-      const review = reviewed.parse(await this.evidence("review"));
-      await this.checkReferences(review.evidencePaths);
+      const kind =
+        this.splitImplementation && target === "AUTOMATION_REVIEWED"
+          ? "automationReview"
+          : "review";
+      const review = reviewed.parse(await this.evidence(kind));
+      if (this.splitImplementation) {
+        const expected =
+          target === "DESIGN_REVIEWED"
+            ? this.current.evidence.scenarios?.digest
+            : objectDigest(
+                [
+                  "caseImplementation",
+                  "browserImplementation",
+                  "inventory",
+                  "traceability",
+                ].map((kind) => this.current.evidence[kind]?.digest),
+              );
+        if (review.reviewDigest !== expected)
+          throw new Error("Review must bind the exact evidence revision");
+      }
     }
-    if (target === "IMPLEMENTED") {
+    if (target === "TESTS_IMPLEMENTED" || target === "BROWSER_IMPLEMENTED") {
+      const browser = target === "BROWSER_IMPLEMENTED";
+      const proof = caseImplementationSchema.parse(
+        await this.evidence(
+          browser ? "browserImplementation" : "caseImplementation",
+        ),
+      );
+      const cases = scenariosSchema.parse(await this.evidence("scenarios"));
+      const handoff = browser
+        ? caseImplementationSchema.parse(
+            await this.evidence("caseImplementation"),
+          ).browserCases
+        : undefined;
+      validateCaseImplementation(cases.scenarios, proof, handoff);
+    }
+    if (target === "IMPLEMENTED" && !this.splitImplementation) {
       const proof = implementation.parse(await this.evidence("implementation"));
       await this.checkReferences(proof.evidencePaths);
       for (const file of [
@@ -404,6 +567,26 @@ export class Workflow {
         const execution = executionSchema.parse(
           await this.evidence("execution"),
         );
+        if (this.splitImplementation) {
+          const browser = caseImplementationSchema.parse(
+            await this.evidence("browserImplementation"),
+          );
+          if (
+            (target === "LOCAL_READY" && !browser.mappings.length) ||
+            browser.mappings.some(
+              ({ automationIdentity }) =>
+                !execution.results.some(
+                  (result) =>
+                    result.identity === automationIdentity &&
+                    result.runner === "playwright" &&
+                    result.outcome === "passed",
+                ),
+            )
+          )
+            throw new Error(
+              "Persisted and executed Playwright coverage is required for local readiness",
+            );
+        }
         for (const result of execution.results)
           await this.checkReferences(result.evidence, result.artifactDigest);
         for (const gate of execution.gates)
@@ -436,6 +619,7 @@ export class Workflow {
     status: "BLOCKED" | "FAILED" | "AWAITING_APPROVAL" | "UNCERTAIN",
     reason: string,
   ) {
+    await assertStoryUnpaused(this.input.repository.root, this.input.storyKey);
     if (!reason.trim()) throw new Error("Suspension needs a reason");
     const next = this.state;
     next.status = status;
@@ -443,6 +627,7 @@ export class Workflow {
     await this.commit(next, "suspend", "qa-orchestrator");
   }
   async reactivate(sourceDigest: string) {
+    await assertStoryUnpaused(this.input.repository.root, this.input.storyKey);
     if (this.current.status === "UNCERTAIN")
       throw new Error(
         "Uncertain external operations require reconciliation; no automatic resume",

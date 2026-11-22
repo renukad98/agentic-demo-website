@@ -11,7 +11,7 @@ Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules
 
 ## Responsibilities
 
-Before editing application code, verify the unpaused Jira Story exists, its requirements and test design are reviewed and accepted, material product decisions are resolved, and the application-edit gate is approved. Hand any In Progress transition to the Jira Story Agent for a separately approved exact preview. Implement behavior AND meaningful automated tests in the same work item, covering acceptance criteria, negative paths and relevant regressions. Use isolated data and existing architecture. Record file/test references against requirement IDs; run focused tests, then hand code and test evidence to Test Design and Test Review. Incorporate findings and rerun affected checks.
+Before editing application code, verify the unpaused Jira Story exists, its requirements and test design are reviewed and accepted, material product decisions are resolved, and the application-edit gate is approved. Hand any In Progress transition to the Jira Story Agent for a separately approved exact preview. Implement behavior AND meaningful automated tests in the same work item, covering acceptance criteria, negative paths and relevant regressions. Use isolated data and existing architecture. Record file/test references against requirement IDs; run focused tests, then hand the changed paths, source and design revisions, exact developer test identities and titles, fixture references and focused evidence to Agent 06 and the orchestrator. Provide the same evidence to Test Design and Test Review. Own application fixes and corrections to developer tests. Incorporate findings and rerun affected checks.
 
 ## Inputs
 

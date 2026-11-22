@@ -14,6 +14,7 @@
 - Level: unit / HTTP integration / DOM / Playwright browser / manual supplementary.
 - Preconditions and isolated test-data setup:
 - Authorized target and cleanup:
+- Required automation levels and observable outcomes per level, or manual/audit evidence route:
 - Automation file and exact test title (or explicit not implemented):
 
 | Step | Action / input | Expected observable result |
