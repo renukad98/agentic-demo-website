@@ -11,6 +11,7 @@ import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
 import { UserStore } from "./data/userStore.js";
+import { ContactStore } from "./data/contactStore.js";
 import { publicUser } from "./types/user.js";
 import { TaskStore, type TaskStoreOptions } from "./data/taskStore.js";
 import {
@@ -56,11 +57,19 @@ const registration = details
     message: "Passwords must match",
     path: ["confirmPassword"],
   });
+const contactSubmission = z.object({
+  name: z.string().trim().min(1, "Enter your name.").max(100),
+  email: z.string().trim().email("Enter a valid email address.").max(254),
+  message: z.string().trim().min(1, "Enter a message.").max(2000),
+});
+
 export function createApp(options: {
   secret: string;
   userFile: string;
   taskFile?: string;
   taskStoreOptions?: TaskStoreOptions;
+  contactDirectory?: string;
+  contactStore?: Pick<ContactStore, "save">;
   production?: boolean;
   trustProxy?: boolean;
 }) {
@@ -73,6 +82,12 @@ export function createApp(options: {
     options.taskFile ?? join(dirname(options.userFile), "tasks.json"),
     options.taskStoreOptions,
   );
+  const contacts =
+    options.contactStore ??
+    new ContactStore(
+      options.contactDirectory ??
+        join(dirname(options.userFile), "contact-messages"),
+    );
   app.disable("x-powered-by");
   if (options.trustProxy) app.set("trust proxy", 1);
   app.use(helmet());
@@ -275,6 +290,11 @@ export function createApp(options: {
     if (!(await tasks.delete(req.session.userId!, id))) return taskMissing(res);
     res.json({ message: "Task permanently deleted." });
   });
+  app.post("/api/contact", async (req, res) => {
+    const message = contactSubmission.parse(req.body);
+    await contacts.save(message);
+    res.status(201).json({ message: "Your message was sent." });
+  });
   app.use("/api", (_req, res) =>
     fail(res, 404, "NOT_FOUND", "Endpoint not found."),
   );
@@ -300,7 +320,14 @@ export function createApp(options: {
     if (!user) return res.redirect("/login");
     res.sendFile(resolve("views/profile.html"));
   });
-  for (const page of ["login", "register", "cookies", "privacy", "terms"])
+  for (const page of [
+    "login",
+    "register",
+    "cookies",
+    "privacy",
+    "terms",
+    "contact",
+  ])
     app.get(`/${page}`, (_req, res) =>
       res.sendFile(resolve(`public/${page}.html`)),
     );

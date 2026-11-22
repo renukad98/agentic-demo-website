@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Contact Us · Agentic</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <script type="module" src="/js/app.js"></script>
+    <script type="module" src="/js/contact.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header id="site-header"></header>
+    <main id="main">
+      <div class="form-layout">
+        <section><h1>Contact Us</h1></section>
+        <section class="card" aria-label="Contact form">
+          <form
+            id="contact-form"
+            method="post"
+            action="/api/contact"
+            novalidate
+          >
+            <label for="contact-name">Name</label>
+            <input
+              id="contact-name"
+              name="name"
+              autocomplete="name"
+              required
+              aria-describedby="contact-name-error"
+            />
+            <p id="contact-name-error" class="task-field-error"></p>
+            <label for="contact-email">Email</label>
+            <input
+              id="contact-email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              required
+              aria-describedby="contact-email-error"
+            />
+            <p id="contact-email-error" class="task-field-error"></p>
+            <label for="contact-message">Message</label>
+            <textarea
+              id="contact-message"
+              name="message"
+              rows="6"
+              required
+              aria-describedby="contact-message-error"
+            ></textarea>
+            <p id="contact-message-error" class="task-field-error"></p>
+            <button type="submit">Submit</button>
+            <p id="contact-error" class="task-field-error" role="alert"></p>
+            <p id="contact-status" role="status"></p>
+          </form>
+        </section>
+      </div>
+    </main>
+    <footer id="site-footer"></footer>
+    <div id="cookie-root"></div>
+  </body>
+</html>

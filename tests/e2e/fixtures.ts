@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { randomBytes, randomUUID } from "node:crypto";
 import bcrypt from "bcrypt";
 import { createApp } from "../../src/app.js";
+import { ContactStore } from "../../src/data/contactStore.js";
 
 export interface FixtureUser {
   id: string;
@@ -21,6 +22,7 @@ interface TestApp {
   users: FixtureUser[];
   userFile: string;
   taskFile: string;
+  contact: { directory: string; beforeSave?: () => Promise<void> };
 }
 export const test = base.extend<{ app: TestApp }>({
   app: async ({ browserName: _browserName }, use) => {
@@ -50,10 +52,20 @@ export const test = base.extend<{ app: TestApp }>({
       })),
     );
     await writeFile(userFile, JSON.stringify(persisted));
+    const contact: TestApp["contact"] = {
+      directory: join(dir, "contact-messages"),
+    };
+    const contactStore = new ContactStore(contact.directory);
     const app = createApp({
       secret: randomBytes(48).toString("hex"),
       userFile,
       taskFile,
+      contactStore: {
+        async save(message) {
+          await contact.beforeSave?.();
+          await contactStore.save(message);
+        },
+      },
     });
     const server = app.listen(0, "127.0.0.1");
     await new Promise<void>((resolve, reject) => {
@@ -69,6 +81,7 @@ export const test = base.extend<{ app: TestApp }>({
         users,
         userFile,
         taskFile,
+        contact,
       });
     } finally {
       server.closeAllConnections();
