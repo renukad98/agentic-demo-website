@@ -9,15 +9,19 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
   const list = doc.querySelector("#task-list");
   const loading = doc.querySelector("#task-loading");
   const empty = doc.querySelector("#task-empty");
+  const search = doc.querySelector("#task-search");
+  const noMatches = doc.querySelector("#task-no-matches");
   const dialog = doc.querySelector("#task-delete-dialog");
   const clearCompleted = doc.querySelector("#task-clear-completed");
   const deleteCompleted = Symbol("delete completed tasks");
   const win = doc.defaultView;
   const events = new win.AbortController();
+  let cardEvents = new win.AbortController();
   const listen = (node, event, fn) =>
     node.addEventListener(event, fn, { signal: events.signal });
   let csrf;
   let tasks = [];
+  let listLoaded = false;
   let editing = null;
   let deleting = null;
   let deleteTrigger = null;
@@ -54,6 +58,11 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     expired = true;
     revision++;
     tasks = [];
+    listLoaded = false;
+    search.value = "";
+    empty.hidden = true;
+    noMatches.hidden = true;
+    cardEvents.abort();
     list.replaceChildren();
     resetEditor();
     deleting = null;
@@ -120,14 +129,22 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     const button = text("button", label, "secondary");
     button.type = "button";
     button.disabled = busy;
-    listen(button, "click", fn);
+    button.addEventListener("click", fn, { signal: cardEvents.signal });
     return button;
   }
   function render() {
+    cardEvents.abort();
+    cardEvents = new win.AbortController();
     list.replaceChildren();
     clearCompleted.hidden = !tasks.some((task) => task.status === "Completed");
-    empty.hidden = tasks.length !== 0 || expired;
-    for (const task of tasks) {
+    const query = search.value.trim().toLowerCase();
+    const visibleTasks = query
+      ? tasks.filter((task) => task.title.toLowerCase().includes(query))
+      : tasks;
+    const showListState = listLoaded && !expired;
+    empty.hidden = !showListState || Boolean(query) || tasks.length !== 0;
+    noMatches.hidden = !showListState || !query || visibleTasks.length !== 0;
+    for (const task of visibleTasks) {
       const item = doc.createElement("li");
       const article = doc.createElement("article");
       article.className = "card task-card";
@@ -200,13 +217,16 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
   async function load() {
     if (expired) return false;
     const ownRevision = ++revision;
+    listLoaded = false;
     loading.hidden = false;
     root.setAttribute("aria-busy", "true");
     empty.hidden = true;
+    noMatches.hidden = true;
     try {
       const data = await api("/api/tasks");
       if (ownRevision !== revision || expired) return false;
       tasks = data.tasks;
+      listLoaded = true;
       render();
       return true;
     } catch (error) {
@@ -226,11 +246,12 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     try {
       const next = task.status === "Pending" ? "Completed" : "Pending";
       await api(`/api/tasks/${task.id}/status`, "PATCH", { status: next });
+      if (expired) return;
       status.textContent =
         next === "Completed" ? "Task completed." : "Task reopened.";
       await load();
     } catch (error) {
-      status.textContent = error.message;
+      if (!expired) status.textContent = error.message;
     } finally {
       setBusy(false);
     }
@@ -276,10 +297,12 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
         current ? "PATCH" : "POST",
         payload,
       );
+      if (expired) return;
       resetEditor();
       status.textContent = current ? "Task changes saved." : "Task created.";
       await load();
     } catch (error) {
+      if (expired) return;
       fieldErrors(error.fields);
       status.textContent =
         !current && error.uncertain
@@ -296,6 +319,9 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
   listen(doc.querySelector("#task-refresh"), "click", () => {
     status.textContent = "";
     void load();
+  });
+  listen(search, "input", () => {
+    if (!expired) render();
   });
   function openDelete(selection, trigger, heading, message) {
     if (busy || expired || dialog.open) return;
@@ -331,6 +357,7 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     try {
       if (selected === deleteCompleted) {
         const { deletedIds } = await api("/api/tasks/completed", "DELETE");
+        if (expired) return;
         const deleted = new Set(deletedIds);
         tasks = tasks.filter((task) => !deleted.has(task.id));
         if (editing && deleted.has(editing.id)) resetEditor();
@@ -340,21 +367,23 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
           : "There were no completed tasks to delete.";
       } else {
         await api(`/api/tasks/${selected.id}`, "DELETE");
+        if (expired) return;
         if (editing?.id === selected.id) resetEditor();
         status.textContent = "Task permanently deleted.";
       }
       deleting = null;
       dialog.close();
       await load();
-      doc.querySelector("#task-list-heading").focus();
+      if (!expired) doc.querySelector("#task-list-heading").focus();
     } catch (error) {
+      if (expired) return;
       deleting = null;
       if (dialog.open) dialog.close();
       status.textContent =
         selected === deleteCompleted && error.uncertain
           ? "The deletion outcome is uncertain. Refresh tasks before retrying."
           : error.message;
-      if (selected === deleteCompleted && !expired) {
+      if (selected === deleteCompleted) {
         setBusy(false);
         clearCompleted.focus();
       }
@@ -372,6 +401,7 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     dispose: () => {
       revision++;
       events.abort();
+      cardEvents.abort();
       tasks = [];
     },
   };

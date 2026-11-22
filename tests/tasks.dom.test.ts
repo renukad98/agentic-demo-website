@@ -74,6 +74,243 @@ test("TM-TC-20 TM-TC-21: renders literal text, whitespace, labels and empty stat
   }
 });
 
+test("KAN-29: title search filters live, restores order, and keeps the query through refresh", async () => {
+  const d = dom();
+  const doc = d.window.document;
+  const search = doc.querySelector<HTMLInputElement>("#task-search")!;
+  const empty = doc.querySelector<HTMLElement>("#task-empty")!;
+  const noMatches = doc.querySelector<HTMLElement>("#task-no-matches")!;
+  const plan = { ...record, id: "plan", title: "Weekly Planning [Q4]" };
+  const print = { ...record, id: "print", title: "Print notes" };
+  const invoice = {
+    ...record,
+    id: "invoice",
+    title: "Invoice",
+    description: "Planning",
+  };
+  let tasks = [plan, print, invoice];
+  let fail = false;
+  const requests: string[] = [];
+  const controller = initTasks(doc, async (url: string, init: RequestInit) => {
+    requests.push(`${init.method} ${url}`);
+    return fail ? json({}, 500) : json({ tasks });
+  });
+  const visibleIds = () =>
+    Array.from(
+      doc.querySelectorAll<HTMLElement>("[data-task-id]"),
+      (card) => card.dataset.taskId,
+    );
+  const type = (query: string) => {
+    search.value = query;
+    search.dispatchEvent(new d.window.Event("input", { bubbles: true }));
+  };
+  try {
+    assert.equal(await controller.ready, true);
+    assert.equal(search.labels?.[0]?.textContent, "Search tasks by title");
+    search.focus();
+    type("p");
+    assert.deepEqual(visibleIds(), ["plan", "print"]);
+    type("  PLAN  ");
+    assert.deepEqual(visibleIds(), ["plan"]);
+    type("[");
+    assert.deepEqual(visibleIds(), ["plan"]);
+    type("<b>");
+    assert.deepEqual(visibleIds(), []);
+    assert.equal(noMatches.hidden, false);
+    assert.equal(noMatches.textContent?.trim(), "No matching tasks found");
+    assert.equal(noMatches.getAttribute("role"), "status");
+    assert.equal(empty.hidden, true);
+    type("   ");
+    assert.deepEqual(visibleIds(), ["plan", "print", "invoice"]);
+    assert.equal(noMatches.hidden, true);
+    assert.equal(doc.activeElement, search);
+    assert.deepEqual(requests, ["GET /api/tasks"]);
+
+    type("plan");
+    tasks = [{ ...plan, id: "updated" }, invoice];
+    assert.equal(await controller.reload(), true);
+    assert.equal(search.value, "plan");
+    assert.deepEqual(visibleIds(), ["updated"]);
+
+    tasks = [];
+    assert.equal(await controller.reload(), true);
+    assert.equal(noMatches.hidden, false);
+    type("");
+    assert.equal(empty.hidden, false);
+    assert.equal(noMatches.hidden, true);
+
+    fail = true;
+    assert.equal(await controller.reload(), false);
+    type("plan");
+    assert.equal(noMatches.hidden, true);
+    assert.equal(empty.hidden, true);
+    assert.match(
+      doc.querySelector("#task-status")?.textContent ?? "",
+      /Unable to load tasks/,
+    );
+  } finally {
+    controller.dispose();
+    d.window.close();
+  }
+});
+
+test("KAN-29: retained cards follow search during and after a failed refresh", async () => {
+  const d = dom();
+  const doc = d.window.document;
+  const tasks = [
+    { ...record, title: "Weekly planning" },
+    { ...record, id: "invoice", title: "Invoice" },
+  ];
+  let finishRefresh!: (response: Response) => void;
+  const refresh = new Promise<Response>((resolve) => {
+    finishRefresh = resolve;
+  });
+  let reads = 0;
+  const controller = initTasks(doc, async () =>
+    ++reads === 1 ? json({ tasks }) : refresh,
+  );
+  const search = doc.querySelector<HTMLInputElement>("#task-search")!;
+  const empty = doc.querySelector<HTMLElement>("#task-empty")!;
+  const noMatches = doc.querySelector<HTMLElement>("#task-no-matches")!;
+  const titles = () =>
+    [...doc.querySelectorAll("#task-list h3")].map((node) => node.textContent);
+  const type = (query: string) => {
+    search.value = query;
+    search.dispatchEvent(new d.window.Event("input", { bubbles: true }));
+  };
+  try {
+    assert.equal(await controller.ready, true);
+    search.focus();
+    const pending = controller.reload();
+    type("plan");
+    assert.deepEqual(titles(), ["Weekly planning"]);
+    assert.equal(noMatches.hidden, true);
+    finishRefresh(json({}, 500));
+    assert.equal(await pending, false);
+
+    type("invoice");
+    assert.deepEqual(titles(), ["Invoice"]);
+    type("missing");
+    assert.deepEqual(titles(), []);
+    assert.equal(noMatches.hidden, true);
+    type("");
+    assert.deepEqual(titles(), ["Weekly planning", "Invoice"]);
+    assert.equal(empty.hidden, true);
+    assert.equal(doc.activeElement, search);
+    assert.match(
+      doc.querySelector("#task-status")!.textContent!,
+      /Refresh tasks to retry/,
+    );
+    assert.equal(reads, 2);
+  } finally {
+    controller.dispose();
+    d.window.close();
+  }
+});
+
+test("KAN-29: a late create response preserves session expiry guidance", async () => {
+  const d = dom();
+  const doc = d.window.document;
+  let finishCreate!: (response: Response) => void;
+  const create = new Promise<Response>((resolve) => {
+    finishCreate = resolve;
+  });
+  let reads = 0;
+  let writes = 0;
+  const controller = initTasks(
+    doc,
+    async (url: string, options: RequestInit) => {
+      if (url === "/api/csrf") return json({ token: "fixture" });
+      assert.equal(url, "/api/tasks");
+      if (options.method === "GET")
+        return ++reads === 1 ? json({ tasks: [record] }) : json({}, 401);
+      assert.equal(options.method, "POST");
+      writes++;
+      return create;
+    },
+  );
+  const submit = doc.querySelector<HTMLButtonElement>("#task-submit")!;
+  const workspace = doc.querySelector<HTMLElement>("#task-workspace")!;
+  try {
+    assert.equal(await controller.ready, true);
+    doc.querySelector<HTMLInputElement>("#task-title")!.value = "New task";
+    doc
+      .querySelector("#task-form")!
+      .dispatchEvent(
+        new d.window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+    await settled(() => writes === 1);
+    assert.equal(await controller.reload(), false);
+    finishCreate(json({}, 201));
+    await settled(() => !submit.disabled);
+
+    assert.equal(workspace.hidden, true);
+    assert.equal(doc.querySelectorAll("[data-task-id]").length, 0);
+    assert.match(
+      doc.querySelector("#task-status")!.textContent!,
+      /session has expired/,
+    );
+    assert.equal(workspace.contains(doc.activeElement), false);
+    assert.equal(reads, 2);
+    assert.equal(writes, 1);
+  } finally {
+    controller.dispose();
+    d.window.close();
+  }
+});
+
+test("KAN-29/KAN-39: Clear Completed removes tasks hidden by search", async () => {
+  const d = dom();
+  const doc = d.window.document;
+  const pending = { ...record, id: "pending", title: "Keep visible" };
+  const completed = { ...record, title: "Finished", status: "Completed" };
+  let tasks = [pending, completed];
+  let writes = 0;
+  const controller = initTasks(
+    doc,
+    async (url: string, options: RequestInit) => {
+      if (url === "/api/csrf") return json({ token: "fixture" });
+      if (url === "/api/tasks" && options.method === "GET")
+        return json({ tasks });
+      assert.equal(url, "/api/tasks/completed");
+      assert.equal(options.method, "DELETE");
+      writes++;
+      tasks = [pending];
+      return json({ deletedIds: [completed.id] });
+    },
+  );
+  const search = doc.querySelector<HTMLInputElement>("#task-search")!;
+  const clear = doc.querySelector<HTMLButtonElement>("#task-clear-completed")!;
+  const type = (query: string) => {
+    search.value = query;
+    search.dispatchEvent(new d.window.Event("input", { bubbles: true }));
+  };
+  try {
+    assert.equal(await controller.ready, true);
+    type("keep");
+    assert.equal(doc.querySelectorAll("[data-task-id]").length, 1);
+    assert.equal(clear.hidden, false);
+    clear.click();
+    assert.equal(writes, 0);
+    doc.querySelector<HTMLButtonElement>("#task-delete-confirm")!.click();
+    await settled(() => doc.activeElement?.id === "task-list-heading");
+
+    assert.equal(writes, 1);
+    assert.equal(search.value, "keep");
+    assert.equal(clear.hidden, true);
+    type("");
+    assert.deepEqual(
+      [...doc.querySelectorAll("#task-list h3")].map(
+        (node) => node.textContent,
+      ),
+      [pending.title],
+    );
+  } finally {
+    controller.dispose();
+    d.window.close();
+  }
+});
+
 test("TM-TC-06 TM-TC-20: blank validation and server field errors are associated with controls and preserve input", async () => {
   const d = dom();
   const controller = initTasks(d.window.document, async (url: string) =>
