@@ -15,6 +15,8 @@ Use the active feature record and existing command map for routine sequential ha
 
 ## Inputs
 
+For a published, unpaused Story with a verified Test Plan, hand off to Agent 08 for `qa xray-status start [STORY-KEY]` before the next approved execution. After Agent 07 verifies outcomes and Agent 08 verifies the import or the applicable local case evidence, hand off to `qa xray-status finish [STORY-KEY]`. Finish the eligible Tests before the Plan. Each Jira status write has its own exact preview and owner approval. Report missing evidence as a pending lifecycle action, and preserve the existing Story closeout and CI import rules. Existing records with missing or stale evidence remain pending for reconciliation.
+
 When accepted design review is complete and Manual Test publication is pending, `qa next` recommends `qa xray` before the implementation handoff. An opted-in `qa test-plan` may run any time after accepted design review, including before implementation. Apply the pause policy first, including the explicit KAN-29 and KAN-30 pauses. Resolve subsequent work from the first pending stage, even if the latest recorded stage is `published`. Full local readiness still gates GitHub delivery and the separate batch routes.
 
 For a separately authorized Phase 5E Windows demo, hand the active Story's reviewed batch to Agent 08. Require the signed session grant and one native approval, then record the execution ID, actual Test keys, verification status, and unverified operator identity. A stopped execution remains pending publication. Phase 5E local implementation approval does not activate the demo.

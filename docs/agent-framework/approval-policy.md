@@ -42,6 +42,25 @@ CI imports automatically after Playwright on pushes to main, including merges. P
 
 Only results mapped to published Test keys are eligible. Reporter-marked unpublished cases appear in the preview and are skipped. Done or paused Stories and Stories without a Test Plan are skipped. Each successful import saves the returned `testExecutionKey` in its Story feature record. Stop at the first import error and reconcile an uncertain remote outcome before retrying.
 
+## Test and Test Plan issue status
+
+For a reviewed, published, unpaused Story, the QA Orchestrator hands off `qa xray-status start [STORY-KEY]` before execution and `qa xray-status finish [STORY-KEY]` after verified results. The helper proposes To Do → In Progress → Done in order. Finish may propose a passing Test independently of other cases. Plan Done requires the exact reviewed Test set in the plan, a verified associated Test Execution recorded for the Story, and passing evidence and Jira Done status for every required Test. A failed remote run takes precedence over local evidence. Existing Story transitions and the CI results-only authorization continue to apply.
+
+Agent 08 gathers the packet from fresh, authorized reads. Agent 01 uses the following local helper actions. Each dispatch requires its own owner `OK` on the latest exact preview. Creation, link and import approvals grant no transition authority.
+
+```text
+node --import tsx tools/agentic/chat-xray-lifecycle.ts readiness "qa xray-status start KAN-99"
+node --import tsx tools/agentic/chat-xray-lifecycle.ts preview "qa xray-status start KAN-99" KAN-100
+node --import tsx tools/agentic/chat-xray-lifecycle.ts check "qa xray-status start KAN-99" KAN-100
+node --import tsx tools/agentic/chat-xray-lifecycle.ts record "qa xray-status start KAN-99" KAN-100
+```
+
+Provide JSON on stdin. Every action takes `context` with the verified Jira HTTPS `cloudId`, `story`, `plan`, and `tests`. Issue objects carry `key`, numeric-string `id`, `issueType` and `status`. Plan and Test objects also carry the verified `storyKey`, `linkId`, `linkType` (Relates for the plan, Test for a Test) and available `transitions` with `id`, destination `to`, and `requiredFields`. Verify Test link direction and supply only available transitions.
+
+For finish, supply verified `planMembers` when available and an `execution` with its issue fields, verified `planKey`, and mapped `runs` when available. Each run has `storyKey`, `caseId`, `testKey`, and `outcome` (passed, failed, skipped, or not-run). For API-only or manual cases, Agent 07 may provide a reviewed local case result JSON containing those same fields, based on verified run evidence. Pass it in `caseEvidence` as a `caseId`, Story-relative artifact `path` (repository-relative under `artifacts/qa/<STORY-KEY>/`), and prefixed `sha256` fingerprint. Do not substitute an import acknowledgement for Test Run or plan membership readback.
+
+For check, supply the latest `preview` and the owner's `reply` with freshly re-read `context`. Dispatch only the returned Jira transition arguments. For record, supply the checked pre-dispatch packet plus the normalized issue `readback`. Receipts are local and exclusive. Stop on the first error, reconcile uncertain writes by read, and re-preview remaining operations individually. The helper performs no remote calls.
+
 ## Autonomous actions
 
 Read authorized stories, requirements, repository metadata and existing Xray tests; inspect source; produce local requirements, scenarios, automation and reports; implement locally approved features with tests; run isolated non-destructive validation. Browser testing must target an authorized local/test environment with isolated data, not live user accounts. A tool described as a preview may still store approval state; inspect its behavior before use.

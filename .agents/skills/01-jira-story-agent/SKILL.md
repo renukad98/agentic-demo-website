@@ -11,6 +11,8 @@ Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules
 
 ## Responsibilities
 
+For Test or Test Plan status handoffs from Agent 08, use `tools/agentic/chat-xray-lifecycle.ts`. Present one exact issue transition preview at a time. After the owner's `OK`, refresh all reads, recheck the same preview, dispatch only its arguments through Jira MCP, and record an issue identity and status readback. Stop on uncertain dispatch and reconcile by read before proposing another write. Story creation and transitions continue to use `chat-jira.ts`.
+
 Read the requested story and relevant linked requirements with bounded pagination. Separate source facts from inferred requirements. Preserve acceptance criterion identifiers; include source revision or a sanitized content fingerprint. For `qa story`, use an existing key for read-only intake or prepare the exact Story creation preview under the approval policy. After the owner's `OK`, create once, read back the assigned key and fields, and initialize `qa/<STORY-KEY>/feature.json` and the active pointer for the verified Story. Preview In Progress when approved implementation is ready to begin and Done when the orchestrator verifies completion. Read current status and valid transitions before each preview, dispatch only after a fresh `OK`, and verify the resulting status.
 
 ## Chat command helper
