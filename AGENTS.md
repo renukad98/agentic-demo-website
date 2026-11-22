@@ -1,10 +1,10 @@
 # Agentic development and QA instructions
 
-## Opt-in Agent 08 Manual Test publication
+## Opt-in Agent 09 Manual Test publication
 
-The repository owner grants standing authorization for the Agent 08 opt-in route in their local sessions, subject to applicable managed controls. Each live Manual Test creation or Story link still requires the owner's explicit `OK` on the latest exact chat preview.
+The repository owner grants standing authorization for the Agent 09 opt-in route in their local sessions, subject to applicable managed controls. Each live Manual Test creation or Story link still requires the owner's explicit `OK` on the latest exact chat preview.
 
-The committed Xray MCP registration defaults to read-only and forwards the owner's local `XRAY_ENABLE_WRITES` setting. After accepted test design review, `qa xray [STORY-KEY]` may prepare an exact preview. In an enabled local session Agent 08 may create Manual Tests and link them to the same Story after the owner's explicit `OK` to that preview. Check duplicates first, process one Test at a time, resolve keys by read, record TS-ID → key in per-Story JSON, and stop on the first error. Result import and paused Stories remain outside this authorization. The existing personal-batch and signed-scope modes retain their own gates. See [approval policy](docs/agent-framework/approval-policy.md).
+The committed Xray MCP registration defaults to read-only and forwards the owner's local `XRAY_ENABLE_WRITES` setting. After accepted test design review, `qa xray [STORY-KEY]` may prepare an exact preview. In an enabled local session Agent 09 may create Manual Tests and link them to the same Story after the owner's explicit `OK` to that preview. Check duplicates first, process one Test at a time, resolve keys by read, record TS-ID → key in per-Story JSON, and stop on the first error. Result import and paused Stories remain outside this authorization. The existing personal-batch and signed-scope modes retain their own gates. See [approval policy](docs/agent-framework/approval-policy.md).
 
 ## Phase 5E local Windows demo implementation
 
@@ -18,7 +18,7 @@ The [results import policy](docs/agent-framework/approval-policy.md#per-story-pl
 
 ## Chat-approved Test Plan and Story link
 
-The [Test Plan policy](docs/agent-framework/approval-policy.md#chat-approved-test-plan-and-story-link) authorizes one local Test Plan and its Relates link to the selected unpaused Story any time after accepted test design review, subject to applicable managed controls. Agent 08 requires the owner’s explicit OK on the latest exact preview. This route grants no CI authorization.
+The [Test Plan policy](docs/agent-framework/approval-policy.md#chat-approved-test-plan-and-story-link) authorizes one local Test Plan and its Relates link to the selected unpaused Story any time after accepted test design review, subject to applicable managed controls. Agent 09 requires the owner’s explicit OK on the latest exact preview. This route grants no CI authorization.
 
 ## Current scope: delivery for unpaused Stories
 
@@ -28,7 +28,7 @@ KAN-29 and KAN-30 remain paused even if a feature record says otherwise. Read-on
 
 ## Role routing
 
-Agent 08 handles the chat-approved Xray routes. Any separate personal-batch or signed-scope activation still requires separately authorized scope and applicable managed review. Existing connector safeguards apply.
+Agent 09 handles the chat-approved Xray routes. Any separate personal-batch or signed-scope activation still requires separately authorized scope and applicable managed review. Existing connector safeguards apply.
 
 Use the repository skills under `.agents/skills/`. Start end-to-end work with `$qa-orchestrator`; use individual skills for bounded tasks. Read [the framework](docs/agent-framework/README.md) and [approval policy](docs/agent-framework/approval-policy.md) before executing a role. Skills are reusable instructions, not independent processes or security boundaries. Sequential role handoffs are the baseline; do not assume spawning agents is available or authorized.
 

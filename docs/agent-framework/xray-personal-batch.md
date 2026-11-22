@@ -37,4 +37,4 @@ The existing batch publisher independently validates and atomically consumes the
 
 Live enabling and an actual reviewed batch confirmation remain separate decisions. Offline tests use synthetic data and intercepted adapter calls.
 
-Agent 08 routes through `xray_website` in `read-only-integration` mode. Real stories use read tools and local planning only. The synthetic fixture is the only batch submitted to the confirmation probe. Agent 08 keeps publication pending in this phase and cannot use a probe decision to dispatch or resume a write.
+Agent 09 routes through `xray_website` in `read-only-integration` mode. Real stories use read tools and local planning only. The synthetic fixture is the only batch submitted to the confirmation probe. Agent 09 keeps publication pending in this phase and cannot use a probe decision to dispatch or resume a write.
