@@ -1,9 +1,12 @@
+import { taskCaseDetails } from "./story-cases.js";
 import { test, expect, signIn, createTask } from "./fixtures.js";
 
-test("TM-TC-01/03/04/05/27: create, edit completed task, complete, reopen and confirm/cancel delete", async ({
+test("TM-TC-01/03/04/05/27: create, edit completed task, complete, reopen and confirm/cancel delete", taskCaseDetails("TM-TC-01/03/04/05/27:"), async ({
   page,
   app,
 }) => {
+  // Five lifecycle cases share one session, and Playwright's configured slowMo adds up across the browser actions.
+  test.slow();
   await signIn(page, app.users[0]!);
   await page.getByLabel("Task title", { exact: true }).fill("  Plan release  ");
   await page
@@ -50,7 +53,7 @@ test("TM-TC-01/03/04/05/27: create, edit completed task, complete, reopen and co
   await expect(page.getByRole("article")).toHaveCount(0);
 });
 
-test("TM-TC-01/02/28: defaults, identical titles and server-ordered list survive reload", async ({
+test("TM-TC-01/02/28: defaults, identical titles and server-ordered list survive reload", taskCaseDetails("TM-TC-01/02/28:"), async ({
   page,
   app,
 }) => {
@@ -73,7 +76,7 @@ test("TM-TC-01/02/28: defaults, identical titles and server-ordered list survive
   ).toHaveValue("");
 });
 
-test("TM-TC-06/07/10/20: field feedback retains input and date-only display", async ({
+test("TM-TC-06/07/10/20: field feedback retains input and date-only display", taskCaseDetails("TM-TC-06/07/10/20:"), async ({
   page,
   app,
 }) => {

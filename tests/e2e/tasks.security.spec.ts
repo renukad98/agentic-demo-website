@@ -1,3 +1,4 @@
+import { taskCaseDetails } from "./story-cases.js";
 import {
   test,
   expect,
@@ -8,7 +9,7 @@ import {
 } from "./fixtures.js";
 import { randomUUID } from "node:crypto";
 
-test("TM-TC-11/23: unauthenticated routes and static aliases protect task data", async ({
+test("TM-TC-11/23: unauthenticated routes and static aliases protect task data", taskCaseDetails("TM-TC-11/23:"), async ({
   page,
   request,
 }) => {
@@ -33,7 +34,7 @@ test("TM-TC-11/23: unauthenticated routes and static aliases protect task data",
     expect((await request.get(path)).status()).toBe(200);
 });
 
-test("TM-TC-02/12/13/27: ownership denial and CSRF remain effective in browser sessions", async ({
+test("TM-TC-02/12/13/27: ownership denial and CSRF remain effective in browser sessions", taskCaseDetails("TM-TC-02/12/13/27:"), async ({
   page,
   app,
   browser,
@@ -80,7 +81,7 @@ test("TM-TC-02/12/13/27: ownership denial and CSRF remain effective in browser s
   }
 });
 
-test("TM-TC-21/23: task text is literal, private and absent from persistent browser storage", async ({
+test("TM-TC-21/23: task text is literal, private and absent from persistent browser storage", taskCaseDetails("TM-TC-21/23:"), async ({
   page,
   app,
 }) => {

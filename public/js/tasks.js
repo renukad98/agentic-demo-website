@@ -12,6 +12,8 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
   const search = doc.querySelector("#task-search");
   const noMatches = doc.querySelector("#task-no-matches");
   const dialog = doc.querySelector("#task-delete-dialog");
+  const clearCompleted = doc.querySelector("#task-clear-completed");
+  const deleteCompleted = Symbol("delete completed tasks");
   const win = doc.defaultView;
   const events = new win.AbortController();
   let cardEvents = new win.AbortController();
@@ -134,12 +136,14 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     cardEvents.abort();
     cardEvents = new win.AbortController();
     list.replaceChildren();
+    clearCompleted.hidden = !tasks.some((task) => task.status === "Completed");
     const query = search.value.trim().toLowerCase();
     const visibleTasks = query
       ? tasks.filter((task) => task.title.toLowerCase().includes(query))
       : tasks;
-    empty.hidden = Boolean(query) || tasks.length !== 0;
-    noMatches.hidden = !query || visibleTasks.length !== 0;
+    const showListState = listLoaded && !expired;
+    empty.hidden = !showListState || Boolean(query) || tasks.length !== 0;
+    noMatches.hidden = !showListState || !query || visibleTasks.length !== 0;
     for (const task of visibleTasks) {
       const item = doc.createElement("li");
       const article = doc.createElement("article");
@@ -186,11 +190,12 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
       );
       actions.append(
         action("Delete", (event) => {
-          deleting = task;
-          deleteTrigger = event.currentTarget;
-          doc.querySelector("#task-delete-message").textContent =
-            `Delete “${task.title}”?`;
-          dialog.showModal();
+          openDelete(
+            task,
+            event.currentTarget,
+            "Permanently delete task?",
+            `Delete “${task.title}”?`,
+          );
         }),
       );
       article.append(actions);
@@ -203,6 +208,7 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     submit.disabled = value;
     cancelEdit.disabled = value;
     doc.querySelector("#task-refresh").disabled = value;
+    clearCompleted.disabled = value;
     for (const button of list.querySelectorAll("button"))
       button.disabled = value;
     doc.querySelector("#task-delete-confirm").disabled = value;
@@ -240,11 +246,12 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     try {
       const next = task.status === "Pending" ? "Completed" : "Pending";
       await api(`/api/tasks/${task.id}/status`, "PATCH", { status: next });
+      if (expired) return;
       status.textContent =
         next === "Completed" ? "Task completed." : "Task reopened.";
       await load();
     } catch (error) {
-      status.textContent = error.message;
+      if (!expired) status.textContent = error.message;
     } finally {
       setBusy(false);
     }
@@ -290,10 +297,12 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
         current ? "PATCH" : "POST",
         payload,
       );
+      if (expired) return;
       resetEditor();
       status.textContent = current ? "Task changes saved." : "Task created.";
       await load();
     } catch (error) {
+      if (expired) return;
       fieldErrors(error.fields);
       status.textContent =
         !current && error.uncertain
@@ -312,7 +321,24 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     void load();
   });
   listen(search, "input", () => {
-    if (listLoaded) render();
+    if (!expired) render();
+  });
+  function openDelete(selection, trigger, heading, message) {
+    if (busy || expired || dialog.open) return;
+    deleting = selection;
+    deleteTrigger = trigger;
+    doc.querySelector("#task-delete-heading").textContent = heading;
+    doc.querySelector("#task-delete-message").textContent = message;
+    dialog.showModal();
+  }
+  listen(clearCompleted, "click", () => {
+    if (clearCompleted.hidden) return;
+    openDelete(
+      deleteCompleted,
+      clearCompleted,
+      "Clear completed tasks?",
+      "All your completed tasks will be permanently deleted.",
+    );
   });
   const closeDelete = () => {
     deleting = null;
@@ -329,16 +355,38 @@ export function initTasks(doc, fetcher = globalThis.fetch.bind(globalThis)) {
     const selected = deleting;
     setBusy(true);
     try {
-      await api(`/api/tasks/${selected.id}`, "DELETE");
+      if (selected === deleteCompleted) {
+        const { deletedIds } = await api("/api/tasks/completed", "DELETE");
+        if (expired) return;
+        const deleted = new Set(deletedIds);
+        tasks = tasks.filter((task) => !deleted.has(task.id));
+        if (editing && deleted.has(editing.id)) resetEditor();
+        render();
+        status.textContent = deleted.size
+          ? "Completed tasks permanently deleted."
+          : "There were no completed tasks to delete.";
+      } else {
+        await api(`/api/tasks/${selected.id}`, "DELETE");
+        if (expired) return;
+        if (editing?.id === selected.id) resetEditor();
+        status.textContent = "Task permanently deleted.";
+      }
       deleting = null;
       dialog.close();
-      if (editing?.id === selected.id) resetEditor();
-      status.textContent = "Task permanently deleted.";
       await load();
-      doc.querySelector("#task-list-heading").focus();
+      if (!expired) doc.querySelector("#task-list-heading").focus();
     } catch (error) {
+      if (expired) return;
+      deleting = null;
       if (dialog.open) dialog.close();
-      status.textContent = error.message;
+      status.textContent =
+        selected === deleteCompleted && error.uncertain
+          ? "The deletion outcome is uncertain. Refresh tasks before retrying."
+          : error.message;
+      if (selected === deleteCompleted) {
+        setBusy(false);
+        clearCompleted.focus();
+      }
     } finally {
       setBusy(false);
     }

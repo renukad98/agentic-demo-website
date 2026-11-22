@@ -264,3 +264,38 @@ test("TM-TC-21/23: task responses retain security headers, literal text and neve
     await f.cleanup();
   }
 });
+
+test("KAN-39-TC-007: bulk deletion rejects unauthenticated, CSRF-invalid and out-of-scope requests", async () => {
+  const f = await taskApiFixture();
+  try {
+    const a = await f.login();
+    const task = await f.store.create(a.user.id, {
+      title: "Completed task",
+      description: "",
+      priority: "Medium",
+      dueDate: null,
+    });
+    await f.store.setStatus(a.user.id, task.id, "Completed");
+    const before = await readFile(f.taskFile, "utf8");
+    const anon = request.agent(f.app);
+    const token = (await anon.get("/api/csrf").expect(200)).body
+      .token as string;
+    await anon
+      .delete("/api/tasks/completed")
+      .set("X-CSRF-Token", token)
+      .expect(401);
+    await a.agent.delete("/api/tasks/completed").expect(403);
+    await a.agent
+      .delete("/api/tasks/completed")
+      .set("X-CSRF-Token", "incorrect")
+      .expect(403);
+    await a.agent
+      .delete("/api/tasks/completed")
+      .set("X-CSRF-Token", a.csrf)
+      .send({ ownerId: a.user.id })
+      .expect(400);
+    assert.equal(await readFile(f.taskFile, "utf8"), before);
+  } finally {
+    await f.cleanup();
+  }
+});

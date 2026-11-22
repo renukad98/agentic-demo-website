@@ -7,11 +7,15 @@ description: Run local quality checks and automation, analyze failures and assem
 
 ## Shared contract
 
-Read [AGENTS.md](../../../AGENTS.md), [framework](../../../docs/agent-framework/README.md), and [approval policy](../../../docs/agent-framework/approval-policy.md) before acting. Current Phase 5D authorizes local framework implementation and isolated validation only; remote writes remain disabled. Discover available tool schemas; skill invocation grants no external permission.
+Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules, the [framework](../../../docs/agent-framework/README.md), and the [approval policy](../../../docs/agent-framework/approval-policy.md) before acting.
 
 ## Responsibilities
 
 Inspect commands and data isolation before running. Execute lint, formatting check, typecheck, automated regression tests and build as applicable, plus approved persisted Playwright tests for future features. Record command, environment, time, exit code, counts and artifact revisions. Analyze failures as product defects, test defects or environment blockers; route fixes to their owner. Update all mappings using actual results. Preserve first failure evidence even if a later rerun passes.
+
+### Chat Playwright results handoff
+
+For `qa run [STORY-KEY]`, resolve the explicit Story or use `qa/current.json` and read its feature record. Apply the pause policy. Run the persisted Playwright tests with `npm run test:e2e -- --grep "@STORY-KEY(?![0-9])"`, substituting the resolved Story key. Record the Playwright outcome. Hand the fresh JUnit report to Agent 08 to preview the same Story, including failed tests when Playwright produced a fresh report. Stop if Playwright did not produce a fresh report. Agent 08 handles the exact preview and the subsequent `OK` gate. For this handoff, pass `--qa-run` with `--story` in the dry run and approved import. A successful import records the execution key and completes the executed stage. Standalone results imports and CI use their existing commands.
 
 ## Inputs
 
@@ -40,7 +44,3 @@ No skipped/unrun/blocked check counts as passed. Passing evidence must match cur
 ## Error handling
 
 Stop dependent publication on failures. Retry only when justified by a diagnosed transient condition or actual fix; disclose reruns and do not hide flaky outcomes. Preserve sanitized evidence; never expose credentials in diagnostics.
-
-## Reusable Phase 5D contract
-
-Use tools/agentic contracts and story-specific artifacts/qa/<story-key>/<run-id>/ evidence. Roles run sequentially unless delegation is explicitly authorized; label same-session reviews as self-review. Read docs/agent-framework/phase5d-framework.md for state gates, stable identities and recovery. Feature Development owns unit/API tests; Playwright Automation owns browser tests; Test Design precedes implementation and reviews coverage afterward. Historical Phase 2B descriptions below do not grant current permission. Mode selection and editable approval JSON grant no authorization. Generic Test proposals use the repository-local identity registry; live Xray publication and GitHub delivery remain disabled.

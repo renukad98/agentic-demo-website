@@ -213,6 +213,42 @@ test("json: failed reservation leaves no partial consumption and needs re-verifi
   );
   await assert.rejects(f.reserve(), /WRITE_UNCERTAIN/);
 });
+for (const scenario of ["retry", "exhausted", "temp-changed", "destination-changed", "committed", "lock-lost"] as const) {
+  test("Windows rename EPERM: " + scenario, { skip: process.platform !== "win32" }, async (t) => {
+    const f = await fixture(t);
+    await f.reserve();
+    const last = (await f.journal.entries(f.request.operationId)).at(-1)!;
+    const original = fs.rename;
+    const attempts: string[] = [];
+    const fault = mock.method(fs, "rename", async (source: string, destination: string) => {
+      attempts.push(source);
+      if (scenario === "retry" && attempts.length === 2) return original(source, destination);
+      if (scenario === "temp-changed") await fs.writeFile(source, "unexpected");
+      if (scenario === "destination-changed") await fs.writeFile(destination, "unexpected");
+      if (scenario === "committed") await original(source, destination);
+      if (scenario === "lock-lost") await fs.unlink(join(f.root, "journal", "writer-lock", "owner"));
+      throw Object.assign(new Error("fault injection"), { code: "EPERM" });
+    });
+    try {
+      if (scenario === "retry") {
+        await f.journal.record({ ...last, status: "Attempted" });
+        assert.equal(attempts.length, 2);
+        assert.equal(attempts[0], attempts[1]);
+        assert.equal((await f.journal.entries(f.request.operationId)).at(-1)!.status, "Attempted");
+      } else {
+        await assert.rejects(
+          f.journal.record({ ...last, status: "Attempted" }),
+          /REPLACEMENT_UNCERTAIN_RECONCILE/,
+        );
+        assert.equal(attempts.length, scenario === "exhausted" ? 4 : 1);
+        assert.equal(new Set(attempts).size, 1);
+        await assert.rejects(f.journal.record({ ...last, status: "Attempted" }), /WRITE_UNCERTAIN_RECONCILE/);
+      }
+    } finally {
+      fault.mock.restore();
+    }
+  });
+}
 test("json: corrupt/truncated content fails closed without overwrite", async (t) => {
   const f = await fixture(t);
   await f.reserve();

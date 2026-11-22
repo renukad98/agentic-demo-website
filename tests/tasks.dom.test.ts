@@ -154,6 +154,163 @@ test("KAN-29: title search filters live, restores order, and keeps the query thr
   }
 });
 
+test("KAN-29: retained cards follow search during and after a failed refresh", async () => {
+  const d = dom();
+  const doc = d.window.document;
+  const tasks = [
+    { ...record, title: "Weekly planning" },
+    { ...record, id: "invoice", title: "Invoice" },
+  ];
+  let finishRefresh!: (response: Response) => void;
+  const refresh = new Promise<Response>((resolve) => {
+    finishRefresh = resolve;
+  });
+  let reads = 0;
+  const controller = initTasks(doc, async () =>
+    ++reads === 1 ? json({ tasks }) : refresh,
+  );
+  const search = doc.querySelector<HTMLInputElement>("#task-search")!;
+  const empty = doc.querySelector<HTMLElement>("#task-empty")!;
+  const noMatches = doc.querySelector<HTMLElement>("#task-no-matches")!;
+  const titles = () =>
+    [...doc.querySelectorAll("#task-list h3")].map((node) => node.textContent);
+  const type = (query: string) => {
+    search.value = query;
+    search.dispatchEvent(new d.window.Event("input", { bubbles: true }));
+  };
+  try {
+    assert.equal(await controller.ready, true);
+    search.focus();
+    const pending = controller.reload();
+    type("plan");
+    assert.deepEqual(titles(), ["Weekly planning"]);
+    assert.equal(noMatches.hidden, true);
+    finishRefresh(json({}, 500));
+    assert.equal(await pending, false);
+
+    type("invoice");
+    assert.deepEqual(titles(), ["Invoice"]);
+    type("missing");
+    assert.deepEqual(titles(), []);
+    assert.equal(noMatches.hidden, true);
+    type("");
+    assert.deepEqual(titles(), ["Weekly planning", "Invoice"]);
+    assert.equal(empty.hidden, true);
+    assert.equal(doc.activeElement, search);
+    assert.match(
+      doc.querySelector("#task-status")!.textContent!,
+      /Refresh tasks to retry/,
+    );
+    assert.equal(reads, 2);
+  } finally {
+    controller.dispose();
+    d.window.close();
+  }
+});
+
+test("KAN-29: a late create response preserves session expiry guidance", async () => {
+  const d = dom();
+  const doc = d.window.document;
+  let finishCreate!: (response: Response) => void;
+  const create = new Promise<Response>((resolve) => {
+    finishCreate = resolve;
+  });
+  let reads = 0;
+  let writes = 0;
+  const controller = initTasks(
+    doc,
+    async (url: string, options: RequestInit) => {
+      if (url === "/api/csrf") return json({ token: "fixture" });
+      assert.equal(url, "/api/tasks");
+      if (options.method === "GET")
+        return ++reads === 1 ? json({ tasks: [record] }) : json({}, 401);
+      assert.equal(options.method, "POST");
+      writes++;
+      return create;
+    },
+  );
+  const submit = doc.querySelector<HTMLButtonElement>("#task-submit")!;
+  const workspace = doc.querySelector<HTMLElement>("#task-workspace")!;
+  try {
+    assert.equal(await controller.ready, true);
+    doc.querySelector<HTMLInputElement>("#task-title")!.value = "New task";
+    doc
+      .querySelector("#task-form")!
+      .dispatchEvent(
+        new d.window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+    await settled(() => writes === 1);
+    assert.equal(await controller.reload(), false);
+    finishCreate(json({}, 201));
+    await settled(() => !submit.disabled);
+
+    assert.equal(workspace.hidden, true);
+    assert.equal(doc.querySelectorAll("[data-task-id]").length, 0);
+    assert.match(
+      doc.querySelector("#task-status")!.textContent!,
+      /session has expired/,
+    );
+    assert.equal(workspace.contains(doc.activeElement), false);
+    assert.equal(reads, 2);
+    assert.equal(writes, 1);
+  } finally {
+    controller.dispose();
+    d.window.close();
+  }
+});
+
+test("KAN-29/KAN-39: Clear Completed removes tasks hidden by search", async () => {
+  const d = dom();
+  const doc = d.window.document;
+  const pending = { ...record, id: "pending", title: "Keep visible" };
+  const completed = { ...record, title: "Finished", status: "Completed" };
+  let tasks = [pending, completed];
+  let writes = 0;
+  const controller = initTasks(
+    doc,
+    async (url: string, options: RequestInit) => {
+      if (url === "/api/csrf") return json({ token: "fixture" });
+      if (url === "/api/tasks" && options.method === "GET")
+        return json({ tasks });
+      assert.equal(url, "/api/tasks/completed");
+      assert.equal(options.method, "DELETE");
+      writes++;
+      tasks = [pending];
+      return json({ deletedIds: [completed.id] });
+    },
+  );
+  const search = doc.querySelector<HTMLInputElement>("#task-search")!;
+  const clear = doc.querySelector<HTMLButtonElement>("#task-clear-completed")!;
+  const type = (query: string) => {
+    search.value = query;
+    search.dispatchEvent(new d.window.Event("input", { bubbles: true }));
+  };
+  try {
+    assert.equal(await controller.ready, true);
+    type("keep");
+    assert.equal(doc.querySelectorAll("[data-task-id]").length, 1);
+    assert.equal(clear.hidden, false);
+    clear.click();
+    assert.equal(writes, 0);
+    doc.querySelector<HTMLButtonElement>("#task-delete-confirm")!.click();
+    await settled(() => doc.activeElement?.id === "task-list-heading");
+
+    assert.equal(writes, 1);
+    assert.equal(search.value, "keep");
+    assert.equal(clear.hidden, true);
+    type("");
+    assert.deepEqual(
+      [...doc.querySelectorAll("#task-list h3")].map(
+        (node) => node.textContent,
+      ),
+      [pending.title],
+    );
+  } finally {
+    controller.dispose();
+    d.window.close();
+  }
+});
+
 test("TM-TC-06 TM-TC-20: blank validation and server field errors are associated with controls and preserve input", async () => {
   const d = dom();
   const controller = initTasks(d.window.document, async (url: string) =>
@@ -436,6 +593,87 @@ test("TM-TC-10: incomplete native date input is not silently interpreted as clea
     );
   } finally {
     c.dispose();
+    d.window.close();
+  }
+});
+
+test("KAN-39-TC-001/002/003/004/010: bulk confirmation, cancellation, failure, and success", async () => {
+  const d = dom();
+  const doc = d.window.document;
+  const completed = {
+    ...record,
+    title: "Completed fixture",
+    status: "Completed",
+  };
+  const pending = { ...record, id: "pending", title: "Pending fixture" };
+  let tasks = [pending];
+  let writes = 0;
+  let fail = true;
+  const controller = initTasks(
+    doc,
+    async (url: string, options: RequestInit) => {
+      if (url === "/api/csrf") return json({ token: "fixture" });
+      if (url === "/api/tasks" && options.method === "GET")
+        return json({ tasks });
+      assert.equal(url, "/api/tasks/completed");
+      assert.equal(options.method, "DELETE");
+      writes++;
+      if (fail)
+        return json({ error: { message: "Unable to delete tasks." } }, 500);
+      tasks = [pending];
+      return json({ deletedIds: [completed.id] });
+    },
+  );
+  try {
+    const clear = doc.querySelector<HTMLButtonElement>(
+      "#task-clear-completed",
+    )!;
+    const dialog = doc.querySelector<HTMLDialogElement>("#task-delete-dialog")!;
+    const confirm = doc.querySelector<HTMLButtonElement>(
+      "#task-delete-confirm",
+    )!;
+    const status = doc.querySelector("#task-status")!;
+    const titles = () =>
+      [...doc.querySelectorAll("#task-list h3")].map(
+        (node) => node.textContent,
+      );
+    await controller.ready;
+    assert.equal(clear.hidden, true);
+    tasks = [pending, completed];
+    await controller.reload();
+    assert.equal(clear.hidden, false);
+
+    clear.click();
+    assert.equal(dialog.open, true);
+    assert.match(
+      dialog.textContent!,
+      /all your completed tasks will be permanently deleted/i,
+    );
+    assert.equal(writes, 0);
+    doc.querySelector<HTMLButtonElement>("#task-delete-cancel")!.click();
+    assert.equal(dialog.open, false);
+    assert.equal(doc.activeElement, clear);
+    clear.click();
+    dialog.dispatchEvent(new d.window.Event("cancel", { cancelable: true }));
+    assert.equal(dialog.open, false);
+    assert.equal(writes, 0);
+    assert.deepEqual(titles(), [pending.title, completed.title]);
+
+    clear.click();
+    confirm.click();
+    await settled(() => status.textContent === "Unable to delete tasks.");
+    assert.deepEqual(titles(), [pending.title, completed.title]);
+    fail = false;
+    clear.click();
+    confirm.click();
+    await settled(() => doc.activeElement?.id === "task-list-heading");
+    assert.equal(writes, 2);
+    assert.equal(clear.hidden, true);
+    assert.deepEqual(titles(), [pending.title]);
+    await controller.reload();
+    assert.deepEqual(titles(), [pending.title]);
+  } finally {
+    controller.dispose();
     d.window.close();
   }
 });

@@ -29,7 +29,7 @@ async function fixture(
   const base = {
     schemaVersion: "1.0.0" as const,
     operationId: "a-test",
-    storyKey: "KAN-25",
+    storyKey: target.story,
     operation: "xray.test.create" as const,
     payloadDigest: digest,
     tenant,
@@ -95,7 +95,7 @@ async function fixture(
     covered: false,
     lost: false,
     reverse: false,
-    steps: 9,
+    steps: target.type === "Manual" ? target.stepCount : 0,
   };
   const fetcher: typeof fetch = async (url, options) => {
     assert.equal(new URL(String(url)).origin, "https://" + tenant);
@@ -105,7 +105,7 @@ async function fixture(
       assert.deepEqual(JSON.parse(String(options.body)), {
         type: { id: "10037" },
         inwardIssue: { key: testKey },
-        outwardIssue: { key: "KAN-25" },
+        outwardIssue: { key: target.story },
       });
       assert.equal(
         (await journal.latestEntries()).find(
@@ -127,11 +127,11 @@ async function fixture(
         inward: "is tested by",
         outward: "tests",
       });
-    const story = path.endsWith("/issue/KAN-25");
+    const story = path.endsWith("/issue/" + target.story);
     if (!story) assert.ok(path.endsWith("/issue/" + testKey));
     return Response.json({
-      id: story ? "10065" : target.issueId,
-      key: story ? "KAN-25" : testKey,
+      id: story ? target.storyIssueId : target.issueId,
+      key: story ? target.story : testKey,
       fields: {
         issuetype: { id: story ? "10009" : "10045" },
         issuelinks: [
@@ -150,7 +150,7 @@ async function fixture(
                   id: "10500",
                   type: { id: "10037", name: "Test" },
                   [story !== state.reverse ? "inwardIssue" : "outwardIssue"]: {
-                    key: story ? testKey : "KAN-25",
+                    key: story ? testKey : target.story,
                   },
                 },
               ]
@@ -192,13 +192,82 @@ async function fixture(
       },
       async getCoverage() {
         return state.covered
-          ? [{ issueId: "10065", jira: { key: "KAN-25" } }]
+          ? [{ issueId: target.storyIssueId, jira: { key: target.story } }]
           : [];
       },
     },
   };
   return { state, journal, ports };
 }
+
+test("KAN-30 is restricted to KAN-29 and reconciles a single approved dispatch", async (t) => {
+  const { state, journal, ports } = await fixture(t, "KAN-30");
+  const before = await journal.latestEntries();
+  const preview = await previewRestLink(journal, "KAN-30");
+  assert.equal(preview.story, "KAN-29");
+  assert.equal(preview.storyIssueId, "10069");
+  assert.equal(preview.testIssueId, "10070");
+  assert.throws(() => localLinkTarget("KAN-31"), /UNSUPPORTED/);
+  assert.equal(
+    (await runRestLink(journal, { ...ports, previewOnly: true }, "KAN-30"))
+      .status,
+    "PREVIEW",
+  );
+  await assert.rejects(
+    runRestLink(
+      journal,
+      { ...ports, confirm: async () => "APPROVE wrong" },
+      "KAN-30",
+    ),
+    /DENIED_OR_EXPIRED/,
+  );
+  state.steps = 1;
+  await assert.rejects(
+    runRestLink(journal, ports, "KAN-30"),
+    /MANUAL_LINK_PREFLIGHT_MISMATCH/,
+  );
+  state.steps = 2;
+  state.covered = true;
+  await assert.rejects(
+    runRestLink(journal, ports, "KAN-30"),
+    /EXISTING_LINK_OR_COVERAGE/,
+  );
+  state.covered = false;
+  assert.equal(state.posts, 0);
+  state.lost = true;
+  const result = await runRestLink(
+    journal,
+    {
+      ...ports,
+      confirm: async (display) => {
+        assert.deepEqual(JSON.parse(display), preview);
+        return "APPROVE " + preview.fingerprint;
+      },
+    },
+    "KAN-30",
+  );
+  assert.equal(result.status, "UNCERTAIN_RUN_RECONCILE_LINK");
+  assert.equal(
+    (await runRestLink(journal, ports, "KAN-30")).status,
+    "RECONCILIATION_REQUIRED",
+  );
+  state.covered = true;
+  assert.deepEqual(await runRestLink(journal, ports, "KAN-30"), {
+    status: "RECONCILED",
+    linkId: "10500",
+  });
+  assert.equal(
+    (await runRestLink(journal, ports, "KAN-30")).status,
+    "ALREADY_JOURNALED",
+  );
+  assert.equal(state.posts, 1);
+  assert.deepEqual(
+    (await journal.latestEntries()).filter(
+      (entry) => entry.operation === "xray.test.create",
+    ),
+    before,
+  );
+});
 
 test("persists one attempt and verifies the directional Jira link and Xray coverage", async (t) => {
   const { state, journal, ports } = await fixture(t);

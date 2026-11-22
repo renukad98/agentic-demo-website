@@ -260,6 +260,13 @@ export function createApp(options: {
     if (!task) return taskMissing(res);
     res.json({ task });
   });
+  app.delete("/api/tasks/completed", async (req, res) => {
+    z.object({})
+      .strict()
+      .parse(req.body === undefined ? {} : req.body);
+    const deletedIds = await tasks.deleteCompleted(req.session.userId!);
+    res.json({ deletedIds });
+  });
   app.delete("/api/tasks/:id", async (req, res) => {
     const id = taskIdSchema.parse(req.params.id);
     z.object({})

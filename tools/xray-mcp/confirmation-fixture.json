@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.1.0",
+  "operation": "xray.publishStory",
+  "environmentId": "no-write-probe",
+  "storyKey": "QA-1",
+  "projectKey": "QA",
+  "workflowId": "probe-workflow",
+  "workflowCorrelationId": "probe-batch",
+  "review": {
+    "disposition": "approved-for-human-review",
+    "evidence": ["Synthetic fixture only"]
+  },
+  "linkType": {
+    "id": "10",
+    "name": "Test",
+    "inward": "is tested by",
+    "outward": "tests"
+  },
+  "storyEvidence": {
+    "issueId": "1",
+    "contentDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "requirements": [{ "id": "AC1", "text": "Display a search field" }]
+  },
+  "cases": [
+    {
+      "kind": "new",
+      "testCaseId": "PROBE-1",
+      "summary": "Find the search field",
+      "description": "Synthetic confirmation fixture",
+      "preconditions": ["Open the synthetic fixture"],
+      "testData": "Synthetic user",
+      "overallExpectedResult": "Search field is visible",
+      "sourceReferences": ["Synthetic AC1"],
+      "steps": [
+        { "action": "Open Tasks", "data": "Synthetic user", "result": "Search field is visible" }
+      ],
+      "requirementCoverage": [
+        { "requirementId": "AC1", "stepNumbers": [1], "rationale": "Checks search field visibility" }
+      ]
+    }
+  ]
+}

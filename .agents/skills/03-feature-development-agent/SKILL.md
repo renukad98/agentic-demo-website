@@ -7,11 +7,11 @@ description: Implement an explicitly approved local feature together with its as
 
 ## Shared contract
 
-Read [AGENTS.md](../../../AGENTS.md), [framework](../../../docs/agent-framework/README.md), and [approval policy](../../../docs/agent-framework/approval-policy.md) before acting. Current Phase 5D authorizes local framework implementation and isolated validation only; remote writes remain disabled. Discover available tool schemas; skill invocation grants no external permission.
+Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules, the [framework](../../../docs/agent-framework/README.md), and the [approval policy](../../../docs/agent-framework/approval-policy.md) before acting.
 
 ## Responsibilities
 
-Confirm Phase 3 or later implementation authorization before editing application code. Implement behavior AND meaningful automated tests in the same work item, covering acceptance criteria, negative paths and relevant regressions. Use isolated data and existing architecture. Record file/test references against requirement IDs; run focused tests, then hand code and test evidence to Test Design and Test Review. Incorporate findings and rerun affected checks.
+Before editing application code, verify the unpaused Jira Story exists, its requirements and test design are reviewed and accepted, material product decisions are resolved, and the application-edit gate is approved. Hand any In Progress transition to the Jira Story Agent for a separately approved exact preview. Implement behavior AND meaningful automated tests in the same work item, covering acceptance criteria, negative paths and relevant regressions. Use isolated data and existing architecture. Record file/test references against requirement IDs; run focused tests, then hand code and test evidence to Test Design and Test Review. Incorporate findings and rerun affected checks.
 
 ## Inputs
 
@@ -27,11 +27,11 @@ Existing Node/Express/TypeScript code, node:test, Supertest and JSDOM; Playwrigh
 
 ## Allowed autonomous actions
 
-Edit local implementation and tests for approved features; Phase 2B does not authorize any feature implementation.
+Edit local implementation and tests for eligible, approved features.
 
 ## Actions requiring human approval
 
-Scope expansion and consequential operations require explicit approval. Do not install new infrastructure or dependencies as Phase 2B setup.
+Scope expansion and consequential operations require explicit approval. Dependency changes and MCP configuration changes require separate approval.
 
 ## Validation requirements
 
@@ -40,7 +40,3 @@ Feature and tests both exist, assertions check observable outcomes, no credentia
 ## Error handling
 
 Do not substitute a plan or manual check for automated tests. Report blockers; fix authorized local failures and return unresolved requirement questions to analysis. Preserve sanitized evidence; never expose credentials in diagnostics.
-
-## Reusable Phase 5D contract
-
-Use tools/agentic contracts and story-specific artifacts/qa/<story-key>/<run-id>/ evidence. Roles run sequentially unless delegation is explicitly authorized; label same-session reviews as self-review. Read docs/agent-framework/phase5d-framework.md for state gates, stable identities and recovery. Feature Development owns unit/API tests; Playwright Automation owns browser tests; Test Design precedes implementation and reviews coverage afterward. Historical Phase 2B descriptions below do not grant current permission. Mode selection and editable approval JSON grant no authorization. Generic Test proposals use the repository-local identity registry; live Xray publication and GitHub delivery remain disabled.
