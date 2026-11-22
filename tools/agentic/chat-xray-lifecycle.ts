@@ -164,7 +164,21 @@ export async function prepareXrayLifecycle(
     !review.toString().includes("testDesign " + designHash.slice(7))
   )
     throw new Error("An accepted review for the exact design is required");
-  const reviewed = parseReviewedCases(design.toString(), story);
+  const designText = design.toString();
+  const reviewed = parseReviewedCases(designText, story);
+  const localOnlyCases = new Set(
+    designText
+      .split(/^## /m)
+      .slice(1)
+      .flatMap((section) => {
+        const [heading, ...lines] = section.split(/\r?\n/);
+        const levels = lines.filter((line) => /^- Level:/i.test(line));
+        return levels.length === 1 &&
+          /^- Level:\s*(?:API(?:-only)?|Manual)\s*\.?\s*$/i.test(levels[0]!)
+          ? [heading!.split(/[ \t]+/, 1)[0]]
+          : [];
+      }),
+  );
   const keys = z.record(caseId, key).parse(JSON.parse(mapping.toString()));
   if (
     reviewed.some(
@@ -241,7 +255,9 @@ export async function prepareXrayLifecycle(
       (candidate) => candidate.caseId === caseId,
     );
     const local = localEvidence.get(caseId);
-    const passed = run ? run.outcome === "passed" : local?.outcome === "passed";
+    const passed = run
+      ? run.outcome === "passed"
+      : localOnlyCases.has(caseId) && local?.outcome === "passed";
     const ready =
       target === "In Progress" ||
       (feature.completedStages.includes("executed") && passed);
@@ -254,7 +270,9 @@ export async function prepareXrayLifecycle(
         test,
         target,
         Boolean(ready),
-        "Passing case evidence is required",
+        localOnlyCases.has(caseId)
+          ? "Passing case evidence is required"
+          : "A matching passing Xray Test Run is required",
       ),
     };
   });
@@ -281,7 +299,7 @@ export async function prepareXrayLifecycle(
     designHash,
     review: fingerprint(review),
     keys,
-    context,
+    context: { ...context, execution: execution ?? null },
   });
   return {
     cloudId: context.cloudId,

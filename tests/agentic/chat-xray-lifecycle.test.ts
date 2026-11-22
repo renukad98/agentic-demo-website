@@ -21,7 +21,11 @@ const transitions = [
   { id: "41", to: "Done", requiredFields: [] as string[] },
 ];
 
-async function fixture(t: TestContext) {
+async function fixture(
+  t: TestContext,
+  apiLevel = "API",
+  browserLevel = "Playwright",
+) {
   const root = await mkdtemp(join(tmpdir(), "xray-lifecycle-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const dir = "artifacts/qa/" + storyKey;
@@ -39,6 +43,10 @@ async function fixture(t: TestContext) {
       .map((id) =>
         [
           "## " + id + " — Reviewed case",
+          ...(id === apiCase && apiLevel ? ["- Level: " + apiLevel] : []),
+          ...(id === browserCase && browserLevel
+            ? ["- Level: " + browserLevel]
+            : []),
           "- Preconditions: Isolated fixture",
           "| Step | Action | Test data | Expected observable result |",
           "| --- | --- | --- | --- |",
@@ -288,4 +296,75 @@ test("lifecycle rejects pause, wrong relations, required fields and stale case e
     prepareXrayLifecycle(root, finish, context),
     /evidence changed/,
   );
+});
+
+test("a missing execution or case row blocks Playwright even with local passing evidence", async (t) => {
+  const { root, context, put } = await fixture(t);
+  const path = "artifacts/qa/" + storyKey + "/browser-local.json";
+  const report = JSON.stringify({
+    storyKey,
+    caseId: browserCase,
+    testKey: "KAN-82",
+    outcome: "passed",
+  });
+  await put(path, report);
+  context.caseEvidence.push({
+    caseId: browserCase,
+    path,
+    sha256: fingerprint(report),
+  });
+  for (const item of context.tests) item.status = "In Progress";
+  context.plan.status = "In Progress";
+
+  const noExecution = await prepareXrayLifecycle(root, finish, {
+    ...context,
+    execution: undefined,
+  });
+  assert.deepEqual(
+    noExecution.tests.map((item) => item.state),
+    ["blocked", "ready"],
+  );
+  assert.equal(noExecution.plan.state, "blocked");
+
+  context.execution.runs = [];
+  const noCaseRow = await prepareXrayLifecycle(root, finish, context);
+  assert.deepEqual(
+    noCaseRow.tests.map((item) => item.state),
+    ["blocked", "ready"],
+  );
+  for (const item of context.tests) item.status = "Done";
+  assert.equal(
+    (await prepareXrayLifecycle(root, finish, context)).plan.state,
+    "blocked",
+  );
+});
+
+test("failed and skipped Xray outcomes override a passing API artifact", async (t) => {
+  const { root, context } = await fixture(t);
+  context.tests[1]!.status = "In Progress";
+  for (const outcome of ["failed", "skipped", "not-run"]) {
+    context.execution.runs = [
+      { storyKey, caseId: apiCase, testKey: "KAN-83", outcome },
+    ];
+    const readback = await prepareXrayLifecycle(root, finish, context);
+    assert.equal(readback.tests[1]?.state, "blocked", outcome);
+    assert.equal(readback.tests[1]?.passed, false, outcome);
+  }
+});
+
+test("local fallback is limited to explicit reviewed API-only and manual levels", async (t) => {
+  for (const [level, state] of [
+    ["API-only", "ready"],
+    ["Manual", "ready"],
+    ["API + Playwright", "blocked"],
+    ["", "blocked"],
+  ] as const) {
+    const { root, context } = await fixture(t, level);
+    context.tests[1]!.status = "In Progress";
+    const readback = await prepareXrayLifecycle(root, finish, {
+      ...context,
+      execution: undefined,
+    });
+    assert.equal(readback.tests[1]?.state, state, level || "unlabelled");
+  }
 });
