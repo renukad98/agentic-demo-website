@@ -11,6 +11,8 @@ Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules
 
 ## Responsibilities
 
+Before executing a published, unpaused Story with a verified plan, hand off to Agent 08 to check the Test and Plan `qa xray-status start` gate. After execution, supply verified case-level outcomes, including API-only case evidence, for the `qa xray-status finish` handoff. Preserve results for failed, skipped, and unrun cases and leave their issue status open. Any Jira write still requires its own approved exact preview.
+
 Inspect commands and data isolation before running. Execute lint, formatting check, typecheck, automated regression tests and build as applicable, plus approved persisted Playwright tests for future features. Record command, environment, time, exit code, counts and artifact revisions. Analyze failures as product defects, test defects or environment blockers; route fixes to their owner. Update all mappings using actual results. Preserve first failure evidence even if a later rerun passes.
 
 ### Chat Playwright results handoff

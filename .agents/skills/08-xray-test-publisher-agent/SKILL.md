@@ -11,6 +11,10 @@ Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules
 
 ## Responsibilities
 
+### Test and Test Plan issue lifecycle
+
+Use `qa xray-status start [STORY-KEY]` after reviewed Tests and the Plan are published and linked, before execution. Use `qa xray-status finish [STORY-KEY]` after verified execution. Build the normalized read-only packet described in the [approval policy](../../../docs/agent-framework/approval-policy.md#test-and-test-plan-issue-status). Run the helper's `readiness` action to select the next eligible issue and hand off to Agent 01. Re-read Jira and Xray after each write so the next preview reflects current statuses. Verify plan membership and its association with the recorded Test Execution before proposing Plan Done. If the connector cannot verify those facts, report the blocked Plan instead of inferring them from Jira links. Keep Xray Test Run outcomes separate from Jira issue status.
+
 ### Chat-approved opt-in session
 
 This is the default for `qa xray` and `qa xray <STORY-KEY>`. Use `node --import tsx tools/agentic/chat-xray.ts load "<exact qa command>"` from the repository root. The helper selects the feature record, checks the accepted review against the test-design SHA-256, converts every reviewed case and reads the optional pipeline folder. A missing explicit Story record blocks that request. Stop on a pause or mismatched evidence. Verify the Jira Story identity, tenant, project, and intended link type with authorized reads.
