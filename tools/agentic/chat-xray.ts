@@ -4,6 +4,11 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import { fingerprint, noSymlinks, objectDigest, within } from "./artifacts.js";
+import {
+  hasAcceptedDesignReview,
+  isStoryPaused,
+  resolveQaNext,
+} from "./qa-next.js";
 import { storyKey } from "./contracts/index.js";
 
 const caseId = z.string().regex(/^[A-Z][A-Z0-9-]*-TC-\d+$/);
@@ -51,7 +56,7 @@ export async function loadChatXray(root: string, command: string) {
       throw error;
     }),
   );
-  if (feature.storyKey !== selected.storyKey || feature.paused)
+  if (feature.storyKey !== selected.storyKey || isStoryPaused(feature))
     throw new Error("Story is paused or the feature record does not match");
   if (!feature.completedStages.includes("reviewed"))
     throw new Error("Accepted test design review is required");
@@ -70,12 +75,7 @@ export async function loadChatXray(root: string, command: string) {
     evidence(feature.evidence.testReview),
     json("qa/pipeline.json"),
   ]);
-  const accepted =
-    /^- (?:Decision|Review decision): accepted(?: for design)?(?:[.\r]|$)/im;
-  if (
-    !accepted.test(review) ||
-    !review.includes(`testDesign ${fingerprint(design).slice(7)}`)
-  )
+  if (!hasAcceptedDesignReview(review, fingerprint(design)))
     throw new Error(
       "The accepted review must reference the exact testDesign SHA-256",
     );
@@ -178,28 +178,20 @@ export function parseReviewedCases(markdown: string, key: string) {
   return cases;
 }
 
-export function markChatXrayPublished(record: unknown) {
+export async function markChatXrayPublished(root: string, record: unknown) {
   const feature = featureRecord.parse(record);
-  if (feature.paused || !feature.completedStages.includes("reviewed"))
+  if (isStoryPaused(feature) || !feature.completedStages.includes("reviewed"))
     throw new Error("Story is paused or has no accepted design review");
   const pendingStages = feature.pendingStages.filter(
     (stage) => stage !== "published",
   );
-  const nextCommands: Record<string, string> = {
-    "branch-ready": "qa branch",
-    implemented: "qa implement",
-    automated: "qa e2e",
-    executed: "qa run",
-    "in-review": "qa pr",
-    done: "qa close",
-  };
-  return {
+  const updated = {
     ...feature,
     stage: "published",
     completedStages: [...new Set([...feature.completedStages, "published"])],
     pendingStages,
-    nextCommand: nextCommands[pendingStages[0] ?? ""] ?? null,
   };
+  return { ...updated, ...(await resolveQaNext(root, updated)) };
 }
 
 type Case = ReturnType<typeof parseReviewedCases>[number];
@@ -309,7 +301,7 @@ async function updateJson(
     );
     await writeFile(
       temporary,
-      JSON.stringify(update(previous), null, 2) + "\n",
+      JSON.stringify(await update(previous), null, 2) + "\n",
       { flag: "wx" },
     );
     await rename(temporary, target);
@@ -493,7 +485,7 @@ export async function completeChatXray(
   await updateJson(root, plan.featureFile, (record) => {
     if (objectDigest(featureRecord.parse(record)) !== plan.featureDigest)
       throw new Error("Feature record changed during publication");
-    return markChatXrayPublished(record);
+    return markChatXrayPublished(root, record);
   });
 }
 

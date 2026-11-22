@@ -11,7 +11,7 @@ Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules
 
 ## Responsibilities
 
-Check traceability in both directions, expected-result quality, independent setup/cleanup, authorization and negative paths, regression risks and duplicate scenarios. Review automation assertions and isolation as they become available. Record concrete findings and require correction of blocking findings before execution/publication gates. If the same Codex instance authored the cases, label this a sequential self-review; do not claim independent validation.
+Check traceability in both directions, expected-result quality, independent setup/cleanup, authorization and negative paths, regression risks and duplicate scenarios. Review the combined developer, approved-case and Playwright automation for coverage, assertions and isolation. Verify mappings against exact test titles, the current source and accepted design, including reused coverage and browser handoffs. Bind final automation review to the exact evidence revisions. Record concrete findings and require correction of blocking findings before execution/publication gates. If the same Codex instance authored the cases, label this a sequential self-review; do not claim independent validation.
 
 ## Inputs
 

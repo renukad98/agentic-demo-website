@@ -2,7 +2,7 @@
 
 ## Agentic development and QA framework
 
-Phase 2B adds Codex repository instructions and ten specialized reusable skills. See the [agent framework guide](docs/agent-framework/README.md) for role invocation, workflow gates, artifact templates, approval policy, traceability, MCP limitations and validation. KAN-25 Task Management is implemented locally during Phase 4B; its evidence and remaining limits are recorded under `artifacts/qa/KAN-25/`.
+Phase 2B adds Codex repository instructions and eleven specialized reusable skills. See the [agent framework guide](docs/agent-framework/README.md) for role invocation, workflow gates, artifact templates, approval policy, traceability, MCP limitations and validation. KAN-25 Task Management is implemented locally during Phase 4B; its evidence and remaining limits are recorded under `artifacts/qa/KAN-25/`.
 
 Offline framework tests generate synthetic reports and identity bindings in temporary directories. Live Xray creation and result publication use the registered evidence under the local `artifacts/` directory. Keep that evidence and its operation journal on the original machine. A fresh checkout can run the offline tests. Live commands that require the registered evidence stop when it is missing.
 

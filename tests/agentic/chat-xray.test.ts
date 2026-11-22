@@ -3,10 +3,12 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { fingerprint } from "../../tools/agentic/artifacts.js";
+import { resolveQaNext } from "../../tools/agentic/qa-next.js";
+import { fingerprint, objectDigest } from "../../tools/agentic/artifacts.js";
 import {
   completeChatXray,
   loadChatXray,
+  markChatXrayPublished,
   recordChatXrayKey,
   renderChatXrayPreview,
   reviewChatXrayDuplicates,
@@ -243,3 +245,166 @@ test("key mapping is durable before completion and conflicts leave the Story pen
   ]);
   assert.equal((await loadChatXray(root, "qa xray")).storyKey, "QA-12");
 });
+
+test("stage-only pause blocks Manual Test preflight and completion", async (t) => {
+  const { root, put } = await fixture(t);
+  const plan = await loadChatXray(root, "qa xray");
+  const feature = JSON.parse(
+    await readFile(join(root, plan.featureFile), "utf8"),
+  );
+  const paused = { ...feature, stage: "paused" };
+  assert.equal(paused.paused, undefined);
+  await put(plan.featureFile, paused);
+  await assert.rejects(loadChatXray(root, "qa xray"), /paused/);
+  await assert.rejects(markChatXrayPublished(root, paused), /paused/);
+  await assert.rejects(
+    completeChatXray(root, "qa xray", plan.evidenceDigest, {}),
+    /paused/,
+  );
+});
+
+for (const state of [
+  "agent-06",
+  "stale",
+  "refreshed-design",
+  "refreshed-source",
+  "refreshed-test",
+  "refreshed-mappings",
+  "legacy-equivalent",
+  "refreshed-legacy",
+] as const) {
+  test(
+    "publication and qa next agree for " + state + " case evidence",
+    async (t) => {
+      const { root, put } = await fixture(t);
+      const featurePath = "qa/QA-12/feature.json";
+      const feature = JSON.parse(
+        await readFile(join(root, featurePath), "utf8"),
+      );
+      const reference = async (path: string) => ({
+        path,
+        digest: fingerprint(await readFile(join(root, path))),
+      });
+      const proofPath = "artifacts/qa/QA-12/review-1/coverage-proof.json";
+      const coverage = "artifacts/qa/QA-12/review-1/coverage-review.md";
+      const caseMappings = "artifacts/qa/QA-12/review-1/mappings.json";
+      const source = "src/qa-12.ts";
+      const testFile = "tests/qa-12.test.ts";
+      const legacy =
+        state === "legacy-equivalent" || state === "refreshed-legacy";
+      const blocked = state === "stale" || state.startsWith("refreshed-");
+      await put(source, "synthetic source");
+      await put(testFile, "synthetic test contents");
+      await put(caseMappings, [
+        {
+          caseId: "QA-12-TC-001",
+          file: testFile,
+          title: "checks cancellation",
+        },
+      ]);
+      const revision = async () => ({
+        storyKey: "QA-12",
+        kind: legacy ? "legacy-equivalent" : "agent-06",
+        design: await reference(feature.evidence.testDesign),
+        designReview: await reference(feature.evidence.testReview),
+        caseMappings: await reference(caseMappings),
+        sourceFiles: {
+          [source]: (await reference(source)).digest,
+          [testFile]: (await reference(testFile)).digest,
+        },
+      });
+      const original = await revision();
+      await put(
+        coverage,
+        [
+          "- Decision: accepted for case implementation.",
+          "- Coverage revision: " + objectDigest(original),
+          "Existing test covers QA-12-TC-001.",
+        ].join("\n"),
+      );
+      if (state === "refreshed-design") {
+        const design = await readFile(
+          join(root, feature.evidence.testDesign),
+          "utf8",
+        );
+        const changed = design.replace(
+          "The task remains.",
+          "The owned task remains visible.",
+        );
+        await put(feature.evidence.testDesign, changed);
+        await put(
+          feature.evidence.testReview,
+          "- Decision: accepted for design.\n- testDesign " +
+            fingerprint(changed).slice(7),
+        );
+      }
+      if (state === "refreshed-source") await put(source, "changed source");
+      if (["stale", "refreshed-test", "refreshed-legacy"].includes(state))
+        await put(testFile, "changed after coverage review");
+      if (state === "refreshed-mappings")
+        await put(caseMappings, [
+          { caseId: "QA-12-TC-001", file: testFile, title: "new exact title" },
+        ]);
+      await put(proofPath, {
+        ...(state.startsWith("refreshed-") ? await revision() : original),
+        coverageReview: await reference(coverage),
+      });
+      await put(featurePath, {
+        ...feature,
+        stage: "automated",
+        completedStages: [
+          ...feature.completedStages,
+          "implemented",
+          ...(legacy ? [] : ["tests-implemented"]),
+        ],
+        pendingStages: ["published", "executed", "in-review"],
+        evidence: { ...feature.evidence, testImplementation: proofPath },
+      });
+      const plan = await loadChatXray(root, "qa xray");
+      await recordChatXrayKey(root, "QA-12", "QA-12-TC-001", "QA-90");
+      await completeChatXray(root, "qa xray", plan.evidenceDigest, {
+        "QA-12-TC-001": "QA-90",
+      });
+      const published = JSON.parse(
+        await readFile(join(root, featurePath), "utf8"),
+      );
+      const route = await resolveQaNext(root, published);
+      assert.equal(published.stage, "published");
+      assert.equal(
+        published.nextCommand,
+        blocked ? "qa test-implement" : "qa run",
+      );
+      assert.deepEqual(
+        published.pendingStages,
+        blocked
+          ? ["tests-implemented", "executed", "in-review"]
+          : ["executed", "in-review"],
+      );
+      assert.deepEqual(route, {
+        pendingStages: published.pendingStages,
+        nextCommand: published.nextCommand,
+      });
+      if (state === "refreshed-test") {
+        const current = await revision();
+        await put(
+          coverage,
+          "- Decision: accepted for case implementation.\n- Coverage revision: " +
+            objectDigest(current),
+        );
+        await put(proofPath, {
+          ...current,
+          coverageReview: await reference(coverage),
+        });
+        assert.deepEqual(await resolveQaNext(root, published), {
+          pendingStages: ["executed", "in-review"],
+          nextCommand: "qa run",
+        });
+      }
+      if (legacy)
+        assert.equal(
+          published.completedStages.includes("tests-implemented"),
+          false,
+        );
+    },
+  );
+}

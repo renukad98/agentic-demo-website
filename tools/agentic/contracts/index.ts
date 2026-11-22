@@ -90,6 +90,7 @@ export const requirementsSchema = z
     unresolvedQuestions: z.array(text),
   })
   .strict();
+export const testLevel = z.enum(["unit", "api", "jsdom", "browser"]);
 export const scenariosSchema = z
   .object({
     schemaVersion: version,
@@ -102,6 +103,7 @@ export const scenariosSchema = z
             requirementIds: texts,
             acceptanceIds: texts,
             kind: z.enum(["automated", "audit"]),
+            levels: z.array(testLevel).min(1).optional(),
             preconditions: texts,
             actions: texts,
             expected: text,
@@ -195,6 +197,42 @@ export const traceabilitySchema = z
       .min(1),
   })
   .strict();
+export const coverageMapping = z
+  .object({
+    caseId: text,
+    level: testLevel,
+    automationIdentity: text,
+    file: text,
+    title: text,
+    disposition: z.enum(["existing", "added"]),
+    covers: z
+      .array(z.object({ requirementId: text, acceptanceId: text }).strict())
+      .min(1),
+  })
+  .strict();
+
+const implementationContext = z
+  .object({
+    schemaVersion: version,
+    storyKey,
+    sourceDigest: digest,
+    designDigest: digest,
+  })
+  .strict();
+const fileDigests = z.record(text, digest);
+export const featureImplementationSchema = implementationContext.extend({
+  implementationFiles: fileDigests.refine(
+    (files) => Object.keys(files).length > 0,
+  ),
+  developerTestFiles: fileDigests.refine(
+    (files) => Object.keys(files).length > 0,
+  ),
+});
+export const caseImplementationSchema = implementationContext.extend({
+  files: fileDigests,
+  mappings: z.array(coverageMapping),
+  browserCases: z.array(text),
+});
 export const resultSchema = z
   .object({
     identity: text,
@@ -292,6 +330,8 @@ export const stages = [
   "DESIGN_REVIEWED",
   "IMPLEMENTATION_AUTHORIZED",
   "IMPLEMENTED",
+  "TESTS_IMPLEMENTED",
+  "BROWSER_IMPLEMENTED",
   "AUTOMATION_REVIEWED",
   "VALIDATED",
   "LOCAL_READY",
@@ -311,6 +351,7 @@ export const roles = z.enum([
   "test-design-agent",
   "feature-development-agent",
   "test-review-agent",
+  "test-implementation-agent",
   "playwright-automation-agent",
   "test-execution-reporting-agent",
   "xray-test-publisher-agent",

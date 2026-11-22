@@ -1,7 +1,17 @@
 {
   "stages": [
-    "story", "requirements", "designed", "reviewed", "branch-ready",
-    "implemented", "automated", "executed", "published", "in-review", "done"
+    "story",
+    "requirements",
+    "designed",
+    "reviewed",
+    "branch-ready",
+    "implemented",
+    "tests-implemented",
+    "automated",
+    "executed",
+    "published",
+    "in-review",
+    "done"
   ],
   "baseBranch": "main",
   "featureBranchPattern": "feature/<story-key>-<slug>",
@@ -12,6 +22,7 @@
     "feature-development-agent": ".agents/skills/05-feature-development-agent/SKILL.md",
     "test-design-agent": ".agents/skills/03-test-design-agent/SKILL.md",
     "test-review-agent": ".agents/skills/04-test-review-agent/SKILL.md",
+    "test-implementation-agent": ".agents/skills/06-test-implementation-agent/SKILL.md",
     "playwright-automation-agent": ".agents/skills/07-playwright-automation-agent/SKILL.md",
     "test-execution-reporting-agent": ".agents/skills/08-test-execution-reporting-agent/SKILL.md",
     "xray-test-publisher-agent": ".agents/skills/09-xray-test-publisher-agent/SKILL.md",
@@ -20,13 +31,29 @@
   },
   "commands": {
     "qa story": { "skill": "jira-story-agent", "stage": "story" },
-    "qa requirements": { "skill": "requirements-analysis-agent", "stage": "requirements" },
+    "qa requirements": {
+      "skill": "requirements-analysis-agent",
+      "stage": "requirements"
+    },
     "qa test-design": { "skill": "test-design-agent", "stage": "designed" },
     "qa test-review": { "skill": "test-review-agent", "stage": "reviewed" },
-    "qa branch": { "skill": "github-integration-agent", "stage": "branch-ready" },
-    "qa implement": { "skill": "feature-development-agent", "stage": "implemented" },
+    "qa branch": {
+      "skill": "github-integration-agent",
+      "stage": "branch-ready"
+    },
+    "qa implement": {
+      "skill": "feature-development-agent",
+      "stage": "implemented"
+    },
+    "qa test-implement": {
+      "skill": "test-implementation-agent",
+      "stage": "tests-implemented"
+    },
     "qa e2e": { "skill": "playwright-automation-agent", "stage": "automated" },
-    "qa run": { "skill": "test-execution-reporting-agent", "stage": "executed" },
+    "qa run": {
+      "skill": "test-execution-reporting-agent",
+      "stage": "executed"
+    },
     "qa xray": {
       "skill": "xray-test-publisher-agent",
       "stage": "published",
@@ -49,8 +76,14 @@
         "requireHumanApproval": true
       }
     },
-    "qa test-plan": { "skill": "xray-test-publisher-agent", "approval": "exact-chat-preview" },
-    "qa xray-results": { "skill": "xray-test-publisher-agent", "approval": "exact-chat-preview" },
+    "qa test-plan": {
+      "skill": "xray-test-publisher-agent",
+      "approval": "exact-chat-preview"
+    },
+    "qa xray-results": {
+      "skill": "xray-test-publisher-agent",
+      "approval": "exact-chat-preview"
+    },
     "qa xray-status": {
       "skill": "xray-test-publisher-agent",
       "actions": ["start", "finish"],
@@ -63,9 +96,18 @@
     "qa next": { "skill": "qa-orchestrator", "readOnly": false }
   },
   "approvalRequiredFor": [
-    "application edits", "dependency changes", "branch creation",
-    "browser test execution", "Jira creation", "Jira updates",
-    "Xray publication and imports", "staging", "commits", "pushes",
-    "pull request creation", "merges", "destructive artifact changes"
+    "application edits",
+    "dependency changes",
+    "branch creation",
+    "browser test execution",
+    "Jira creation",
+    "Jira updates",
+    "Xray publication and imports",
+    "staging",
+    "commits",
+    "pushes",
+    "pull request creation",
+    "merges",
+    "destructive artifact changes"
   ]
 }
