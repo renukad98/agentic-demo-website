@@ -33,7 +33,7 @@ const header = document.querySelector("#site-header");
 header.innerHTML =
   '<a class="brand" href="/" aria-label="Agentic home"><span class="brand-mark">a.</span> agentic<span class="demo-tag">DEMO</span></a><nav aria-label="Main navigation"><a href="/">Home</a><span id="auth-nav" aria-live="polite">Loading…</span></nav>';
 document.querySelector("#site-footer").innerHTML =
-  `<div><a class="brand" href="/">agentic<span class="demo-tag">DEMO</span></a><p>A simple space. Built around you.</p></div><nav aria-label="Footer navigation"><a href="/">Home</a><a href="/privacy">Privacy Notice</a><a href="/cookies">Cookie Policy</a><a href="/terms">Terms of Service</a><button class="text-button" data-cookie-settings>Cookie Settings</button></nav><p class="copyright">© ${new Date().getFullYear()} Agentic Demo. For demonstration purposes.</p>`;
+  `<div><a class="brand" href="/">agentic<span class="demo-tag">DEMO</span></a><p>A simple space. Built around you.</p></div><nav aria-label="Footer navigation"><a href="/">Home</a><a href="/privacy">Privacy Notice</a><a href="/cookies">Cookie Policy</a><a href="/terms">Terms of Service</a><a href="/contact">Contact Us</a><button class="text-button" data-cookie-settings>Cookie Settings</button></nav><p class="copyright">© ${new Date().getFullYear()} Agentic Demo. For demonstration purposes.</p>`;
 initConsent();
 let user;
 try {

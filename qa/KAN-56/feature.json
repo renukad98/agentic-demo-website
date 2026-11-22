@@ -1,0 +1,47 @@
+{
+  "storyKey": "KAN-56",
+  "stage": "published",
+  "paused": false,
+  "completedStages": [
+    "story",
+    "requirements",
+    "designed",
+    "reviewed",
+    "branch-ready",
+    "implemented",
+    "automated",
+    "executed",
+    "published"
+  ],
+  "pendingStages": [
+    "in-review",
+    "done"
+  ],
+  "testPlanKey": "KAN-57",
+  "evidence": {
+    "testDesign": "artifacts/qa/KAN-56/design-01/test-cases.md",
+    "testReview": "artifacts/qa/KAN-56/design-01/review.md",
+    "requirements": "artifacts/qa/KAN-56/design-01/requirements.md",
+    "traceability": "artifacts/qa/KAN-56/design-01/traceability.csv",
+    "testDesignReport": "artifacts/qa/KAN-56/design-01/run-report.md",
+    "implementationReport": "artifacts/qa/KAN-56/implementation-01/run-report.md",
+    "automationReview": "artifacts/qa/KAN-56/implementation-01/run-report.md",
+    "executionReport": "artifacts/qa/KAN-56/execution-02/run-report.md",
+    "executionTraceability": "artifacts/qa/KAN-56/execution-02/traceability.csv",
+    "playwrightJunit": "artifacts/qa/KAN-56/execution-03/xray-junit.xml",
+    "mappedExecutionReport": "artifacts/qa/KAN-56/execution-03/run-report.md"
+  },
+  "title": "Add a Contact Us form",
+  "nextCommand": "qa pr",
+  "proposedBranch": "feature/kan-56-contact-us",
+  "verifiedRecords": {
+    "jiraStory": "KAN-56",
+    "localBranch": {
+      "name": "feature/kan-56-contact-us",
+      "baseCommit": "ed13b234a16eafa02c071656c085f04fac32b7ba",
+      "worktree": "kan-56-contact-us"
+    },
+    "jiraStatus": "In Progress"
+  },
+  "testExecutionKey": "KAN-63"
+}

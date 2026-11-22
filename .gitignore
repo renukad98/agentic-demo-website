@@ -29,6 +29,7 @@ test-results/
 playwright-report/
 playwright-results.json
 data/tasks.json
+/data/contact-messages/
 /artifacts/*
 !/artifacts/qa/
 /artifacts/qa/*
