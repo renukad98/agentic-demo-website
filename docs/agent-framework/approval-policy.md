@@ -16,7 +16,7 @@ Treat In Progress and Done as separate transitions. Read the current status and 
 
 Keep separate scoped local previews and approvals for branch creation, staging and commits. After all local QA gates pass, preview a normal push with the repository, remote, source commit and destination branch. Preview PR creation separately with the repository, head, base, title, body and reviewed revision. Each external action requires its own `OK`. Verify the remote branch or PR after dispatch. Hand the verified PR to the owner for manual merge.
 
-## Opt-in Agent 08 Manual Tests and Story links
+## Opt-in Agent 09 Manual Tests and Story links
 
 The repository owner grants standing authorization for this route in their local sessions, subject to applicable managed controls. The committed registration defaults to read-only and forwards `XRAY_ENABLE_WRITES` to the stdio server. On Windows, set it once with `[Environment]::SetEnvironmentVariable('XRAY_ENABLE_WRITES', 'true', 'User')`, then fully restart VS Code so Codex inherits it. The server exposes the write tools only when opted in. [Codex configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference)
 
@@ -28,7 +28,7 @@ The trusted approval and journal requirements still apply to the separate contro
 
 ## Chat-approved Test Plan and Story link
 
-This local route is available any time after accepted test design review for an unpaused Story, subject to applicable managed controls. Check for an existing plan before proposing creation. In an opted-in MCP session, Agent 08 may use `xray_create_test_plan` and `jira_link_issues` only after the owner explicitly replies `OK` to the latest exact preview for one Story. Show the tenant, project, Story, existing plan key or exact creation summary, and the fixed Jira `Relates` link between the plan and that Story.
+This local route is available any time after accepted test design review for an unpaused Story, subject to applicable managed controls. Check for an existing plan before proposing creation. In an opted-in MCP session, Agent 09 may use `xray_create_test_plan` and `jira_link_issues` only after the owner explicitly replies `OK` to the latest exact preview for one Story. Show the tenant, project, Story, existing plan key or exact creation summary, and the fixed Jira `Relates` link between the plan and that Story.
 
 Recheck freshness and scope before dispatch. Create only if previewed, resolve and verify the plan by read, and verify the exact link by readback before saving `testPlanKey` in the Story feature record. Stop at the first error. Reconcile a known or uncertain create or link by read before seeking fresh approval. Apply the pause policy. CI has no Test Plan creation or Story-link authorization.
 
@@ -36,7 +36,7 @@ Recheck freshness and scope before dispatch. Create only if previewed, resolve a
 
 This results-only route remains subject to applicable managed controls. Use the CLI with Xray credentials supplied by the environment. The CLI imports by default. Pass the `--dry-run` flag to print the preview without contacting Xray.
 
-For local chat imports, Agent 07 can hand off the fresh report from `qa run` to Agent 08. The `qa xray-results` command uses the existing report. In either case, show the exact single-Story preview with the target, Test Plan, XML and skipped or unpublished cases. The owner’s explicit `OK` on the latest exact preview authorizes one local import for that Story. Rerun the dry run before dispatch and ask for fresh approval if the preview changes. The owner may also invoke the CLI directly after approving the exact preview.
+For local chat imports, Agent 08 can hand off the fresh report from `qa run` to Agent 09. The `qa xray-results` command uses the existing report. In either case, show the exact single-Story preview with the target, Test Plan, XML and skipped or unpublished cases. The owner’s explicit `OK` on the latest exact preview authorizes one local import for that Story. Rerun the dry run before dispatch and ask for fresh approval if the preview changes. The owner may also invoke the CLI directly after approving the exact preview.
 
 CI imports automatically after Playwright on pushes to main, including merges. Pull requests and manual workflow runs omit the import. CI uses GitHub secrets for Xray credentials and skips with a notice if they are missing.
 
@@ -46,7 +46,7 @@ Only results mapped to published Test keys are eligible. Reporter-marked unpubli
 
 For a reviewed, published, unpaused Story, the QA Orchestrator hands off `qa xray-status start [STORY-KEY]` before execution and `qa xray-status finish [STORY-KEY]` after verified results. The helper proposes To Do → In Progress → Done in order. Finish may propose a passing Test independently of other cases. Plan Done requires the exact reviewed Test set in the plan, a verified associated Test Execution recorded for the Story, and passing evidence and Jira Done status for every required Test. A failed remote run takes precedence over local evidence. Existing Story transitions and the CI results-only authorization continue to apply.
 
-Agent 08 gathers the packet from fresh, authorized reads. Agent 01 uses the following local helper actions. Each dispatch requires its own owner `OK` on the latest exact preview. Creation, link and import approvals grant no transition authority.
+Agent 09 gathers the packet from fresh, authorized reads. Agent 01 uses the following local helper actions. Each dispatch requires its own owner `OK` on the latest exact preview. Creation, link and import approvals grant no transition authority.
 
 ```text
 node --import tsx tools/agentic/chat-xray-lifecycle.ts readiness "qa xray-status start KAN-99"
@@ -57,7 +57,7 @@ node --import tsx tools/agentic/chat-xray-lifecycle.ts record "qa xray-status st
 
 Provide JSON on stdin. Every action takes `context` with the verified Jira HTTPS `cloudId`, `story`, `plan`, and `tests`. Issue objects carry `key`, numeric-string `id`, `issueType` and `status`. Plan and Test objects also carry the verified `storyKey`, `linkId`, `linkType` (Relates for the plan, Test for a Test) and available `transitions` with `id`, destination `to`, and `requiredFields`. Verify Test link direction and supply only available transitions.
 
-For finish, supply verified `planMembers` when available and an `execution` with its issue fields, verified `planKey`, and mapped `runs` when available. Each run has `storyKey`, `caseId`, `testKey`, and `outcome` (passed, failed, skipped, or not-run). A case requires a matching passing Xray Test Run unless its accepted, fingerprinted design section explicitly declares `- Level: API`, `- Level: API-only`, or `- Level: Manual`. Unlabelled and mixed-level cases require an Xray Test Run. For an explicitly eligible case, Agent 07 may provide a reviewed local case result JSON containing those same fields, based on verified run evidence. A mapped Xray run takes precedence, including failed, skipped, and not-run outcomes. Pass it in `caseEvidence` as a `caseId`, Story-relative artifact `path` (repository-relative under `artifacts/qa/<STORY-KEY>/`), and prefixed `sha256` fingerprint. Do not substitute an import acknowledgement for Test Run or plan membership readback.
+For finish, supply verified `planMembers` when available and an `execution` with its issue fields, verified `planKey`, and mapped `runs` when available. Each run has `storyKey`, `caseId`, `testKey`, and `outcome` (passed, failed, skipped, or not-run). A case requires a matching passing Xray Test Run unless its accepted, fingerprinted design section explicitly declares `- Level: API`, `- Level: API-only`, or `- Level: Manual`. Unlabelled and mixed-level cases require an Xray Test Run. For an explicitly eligible case, Agent 08 may provide a reviewed local case result JSON containing those same fields, based on verified run evidence. A mapped Xray run takes precedence, including failed, skipped, and not-run outcomes. Pass it in `caseEvidence` as a `caseId`, Story-relative artifact `path` (repository-relative under `artifacts/qa/<STORY-KEY>/`), and prefixed `sha256` fingerprint. Do not substitute an import acknowledgement for Test Run or plan membership readback.
 
 For check, supply the latest `preview` and the owner's `reply` with freshly re-read `context`. Dispatch only the returned Jira transition arguments. For record, supply the checked pre-dispatch packet plus the normalized issue `readback`. Receipts are local and exclusive. Stop on the first error, reconcile uncertain writes by read, and re-preview remaining operations individually. The helper performs no remote calls.
 
@@ -67,7 +67,7 @@ Read authorized stories, requirements, repository metadata and existing Xray tes
 
 ## Approval steps for a later phase
 
-### Controlled Agent 08 Manual Test batches
+### Controlled Agent 09 Manual Test batches
 
 Phase 5E adds local code for a separately activated Windows stdio demo. The default registration remains read-only. A future demo activation must pass applicable managed review and use a public Ed25519 issuer key provisioned outside the repository. The independent issuer approves and signs exactly one scope challenge, bound to the Jira tenant, Xray origin, project, Story key and issue ID, operation set, canonical plan and payload digests, expiry and fresh MCP session nonce. The private key stays with the issuer. This policy documents the implementation and grants no live authorization.
 

@@ -11,13 +11,13 @@ Read [AGENTS.md](../../../AGENTS.md), including the shared skill operating rules
 
 ## Responsibilities
 
-Before executing a published, unpaused Story with a verified plan, hand off to Agent 08 to check the Test and Plan `qa xray-status start` gate. After execution, supply verified case-level outcomes, including API-only case evidence, for the `qa xray-status finish` handoff. Preserve results for failed, skipped, and unrun cases and leave their issue status open. Any Jira write still requires its own approved exact preview.
+Before executing a published, unpaused Story with a verified plan, hand off to Agent 09 to check the Test and Plan `qa xray-status start` gate. After execution, supply verified case-level outcomes, including API-only case evidence, for the `qa xray-status finish` handoff. Preserve results for failed, skipped, and unrun cases and leave their issue status open. Any Jira write still requires its own approved exact preview.
 
 Inspect commands and data isolation before running. Execute lint, formatting check, typecheck, automated regression tests and build as applicable, plus approved persisted Playwright tests for future features. Record command, environment, time, exit code, counts and artifact revisions. Analyze failures as product defects, test defects or environment blockers; route fixes to their owner. Update all mappings using actual results. Preserve first failure evidence even if a later rerun passes.
 
 ### Chat Playwright results handoff
 
-For `qa run [STORY-KEY]`, resolve the explicit Story or use `qa/current.json` and read its feature record. Apply the pause policy. Run the persisted Playwright tests with `npm run test:e2e -- --grep "@STORY-KEY(?![0-9])"`, substituting the resolved Story key. Record the Playwright outcome. Hand the fresh JUnit report to Agent 08 to preview the same Story, including failed tests when Playwright produced a fresh report. Stop if Playwright did not produce a fresh report. Agent 08 handles the exact preview and the subsequent `OK` gate. For this handoff, pass `--qa-run` with `--story` in the dry run and approved import. A successful import records the execution key and completes the executed stage. Standalone results imports and CI use their existing commands.
+For `qa run [STORY-KEY]`, resolve the explicit Story or use `qa/current.json` and read its feature record. Apply the pause policy. Run the persisted Playwright tests with `npm run test:e2e -- --grep "@STORY-KEY(?![0-9])"`, substituting the resolved Story key. Record the Playwright outcome. Hand the fresh JUnit report to Agent 09 to preview the same Story, including failed tests when Playwright produced a fresh report. Stop if Playwright did not produce a fresh report. Agent 09 handles the exact preview and the subsequent `OK` gate. For this handoff, pass `--qa-run` with `--story` in the dry run and approved import. A successful import records the execution key and completes the executed stage. Standalone results imports and CI use their existing commands.
 
 ## Inputs
 

@@ -35,9 +35,9 @@ Pass a JSON object with `preview` (the approved helper JSON), `plan` (verified `
 
 ### Per-Story Playwright results import
 
-For `qa xray-results [STORY-KEY]` or the Agent 07 handoff from `qa run [STORY-KEY]`, resolve the explicit Story or use `qa/current.json`. Read its feature record and apply the pause policy. Use the existing report for `qa xray-results`. Run `npm run xray:import-by-story -- --dry-run --story STORY-KEY` from the repository root and show the exact preview JSON, including the target, XML, and skipped or unpublished cases.
+For `qa xray-results [STORY-KEY]` or the Agent 08 handoff from `qa run [STORY-KEY]`, resolve the explicit Story or use `qa/current.json`. Read its feature record and apply the pause policy. Use the existing report for `qa xray-results`. Run `npm run xray:import-by-story -- --dry-run --story STORY-KEY` from the repository root and show the exact preview JSON, including the target, XML, and skipped or unpublished cases.
 
-If there is an eligible import, offer the owner the exact scoped action with “Reply OK to import these Playwright results for STORY-KEY.” After explicit `OK`, rerun the dry run and compare the preview JSON to the approved preview. Ask for fresh approval if it changed. Run `npm run xray:import-by-story -- --story STORY-KEY` once and read back `testExecutionKey` from the feature record. Stop on an import error and reconcile any uncertain outcome before retrying. For an Agent 07 handoff from `qa run`, add `--qa-run` to both commands and show that the preview includes the local executed-stage update.
+If there is an eligible import, offer the owner the exact scoped action with “Reply OK to import these Playwright results for STORY-KEY.” After explicit `OK`, rerun the dry run and compare the preview JSON to the approved preview. Ask for fresh approval if it changed. Run `npm run xray:import-by-story -- --story STORY-KEY` once and read back `testExecutionKey` from the feature record. Stop on an import error and reconcile any uncertain outcome before retrying. For an Agent 08 handoff from `qa run`, add `--qa-run` to both commands and show that the preview includes the local executed-stage update.
 
 CI imports automatically after Playwright on pushes to main under the [results import policy](../../../docs/agent-framework/approval-policy.md#per-story-playwright-results-import).
 
