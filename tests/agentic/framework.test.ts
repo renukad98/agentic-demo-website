@@ -575,7 +575,7 @@ test("split workflow gates reuse, browser ownership and complete current traceab
   const local = () =>
     workflow.advance(
       "TESTS_IMPLEMENTED",
-      "test-implementation-agent",
+      "feature-development-agent",
       input.sourceDigest,
     );
   await assert.rejects(local(), /Missing caseImplementation/);
@@ -609,7 +609,7 @@ test("split workflow gates reuse, browser ownership and complete current traceab
   await assert.rejects(
     workflow.advance(
       "TESTS_IMPLEMENTED",
-      "feature-development-agent",
+      "test-implementation-agent",
       input.sourceDigest,
     ),
     /Incorrect role/,
@@ -736,8 +736,8 @@ test("qa next reconciles active legacy records even after publication and respec
   };
   const { root } = await fixture(t);
   assert.deepEqual(await resolveQaNext(root, feature), {
-    pendingStages: ["tests-implemented", "automated"],
-    nextCommand: "qa test-implement",
+    pendingStages: ["implemented", "automated"],
+    nextCommand: "qa implement",
   });
   for (const pausedOrDone of [
     { stage: "done" },
@@ -751,22 +751,16 @@ test("qa next reconciles active legacy records even after publication and respec
   const pipeline = JSON.parse(
     await readFile(new URL("../../qa/pipeline.json", import.meta.url), "utf8"),
   );
-  const index = pipeline.stages.indexOf("tests-implemented");
-  assert.deepEqual(pipeline.stages.slice(index - 1, index + 2), [
-    "implemented",
-    "tests-implemented",
-    "automated",
-  ]);
-  assert.deepEqual(pipeline.commands["qa test-implement"], {
-    skill: "test-implementation-agent",
-    stage: "tests-implemented",
+  assert.equal(pipeline.stages.includes("tests-implemented"), false);
+  assert.equal(pipeline.commands["qa test-implement"], undefined);
+  assert.equal(Object.keys(pipeline.skills).length, 10);
+  assert.deepEqual(pipeline.commands["qa implement"], {
+    skill: "feature-development-agent",
+    stage: "implemented",
   });
-  await readFile(
-    new URL(
-      "../../" + pipeline.skills["test-implementation-agent"],
-      import.meta.url,
-    ),
-  );
+  for (const path of Object.values(pipeline.skills)) {
+    await readFile(new URL("../../" + path, import.meta.url), "utf8");
+  }
 });
 
 test("paused Stories cannot begin or advance a typed delivery run", async (t) => {
@@ -949,7 +943,7 @@ for (const browserCoverage of [false, true]) {
         mappings: [unit],
         browserCases: browserCoverage ? ["C1"] : [],
       });
-      await advance("TESTS_IMPLEMENTED", "test-implementation-agent");
+      await advance("TESTS_IMPLEMENTED", "feature-development-agent");
       await workflow.attach("browserImplementation", {
         ...context,
         files: browserCoverage

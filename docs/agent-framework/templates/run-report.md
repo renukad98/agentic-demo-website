@@ -53,8 +53,8 @@ Stage statuses: pending / in progress / complete / blocked / awaiting approval /
 ## Approved-case implementation handoff
 
 - Story, run, source revision or digest, and accepted design SHA-256
-- Agent 05 developer test references and fixture evidence
+- Feature Development test references and fixture evidence
 - Case ID, requirement and acceptance IDs, level, disposition, automation identity, exact path and title
-- Browser cases and fixture requirements handed to Agent 07
+- Browser cases and fixture requirements handed to Playwright Automation
 - Manual or audit evidence route, coverage gaps, blockers and assigned owner
 - Focused check evidence and review handoff

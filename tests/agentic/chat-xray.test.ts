@@ -264,6 +264,7 @@ test("stage-only pause blocks Manual Test preflight and completion", async (t) =
 });
 
 for (const state of [
+  "feature-development",
   "agent-06",
   "stale",
   "refreshed-design",
@@ -304,7 +305,11 @@ for (const state of [
       ]);
       const revision = async () => ({
         storyKey: "QA-12",
-        kind: legacy ? "legacy-equivalent" : "agent-06",
+        kind: legacy
+          ? "legacy-equivalent"
+          : state === "feature-development"
+            ? state
+            : "agent-06",
         design: await reference(feature.evidence.testDesign),
         designReview: await reference(feature.evidence.testReview),
         caseMappings: await reference(caseMappings),
@@ -370,14 +375,11 @@ for (const state of [
       );
       const route = await resolveQaNext(root, published);
       assert.equal(published.stage, "published");
-      assert.equal(
-        published.nextCommand,
-        blocked ? "qa test-implement" : "qa run",
-      );
+      assert.equal(published.nextCommand, blocked ? "qa implement" : "qa run");
       assert.deepEqual(
         published.pendingStages,
         blocked
-          ? ["tests-implemented", "executed", "in-review"]
+          ? ["implemented", "executed", "in-review"]
           : ["executed", "in-review"],
       );
       assert.deepEqual(route, {

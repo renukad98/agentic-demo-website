@@ -17,7 +17,7 @@ Inspect the authorized UI through Playwright MCP when useful. Implement persiste
 
 ## Inputs
 
-Accepted test cases, implementation, Agent 06’s browser case IDs and fixture requirements, authorized test target and isolated-data strategy. Reconcile the handoff with the accepted design. Return persisted case mappings and browser implementation evidence to Agent 04 and the orchestrator. Browser execution retains its scoped approval gate.
+Accepted test cases, implementation, Feature Development’s approved browser case IDs and fixture requirements, authorized test target and isolated-data strategy. Reconcile the handoff with the accepted design. Return persisted case mappings and browser implementation evidence to Test Review and the orchestrator. Browser execution retains its scoped approval gate.
 
 ## Outputs
 

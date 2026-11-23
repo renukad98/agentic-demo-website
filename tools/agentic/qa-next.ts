@@ -17,7 +17,7 @@ const evidenceRef = z.object({ path: z.string(), digest }).strict();
 const routingProof = z
   .object({
     storyKey,
-    kind: z.enum(["agent-06", "legacy-equivalent"]),
+    kind: z.enum(["feature-development", "agent-06", "legacy-equivalent"]),
     design: evidenceRef,
     designReview: evidenceRef,
     coverageReview: evidenceRef,
@@ -35,7 +35,6 @@ const commands: Record<string, string> = {
   reviewed: "qa test-review",
   "branch-ready": "qa branch",
   implemented: "qa implement",
-  "tests-implemented": "qa test-implement",
   automated: "qa e2e",
   executed: "qa run",
   published: "qa xray",
@@ -158,18 +157,22 @@ export async function resolveQaNext(root: string, record: unknown) {
     feature.completedStages.includes("done")
   )
     return { pendingStages: feature.pendingStages, nextCommand: null };
+  const implementationComplete =
+    feature.completedStages.includes("implemented");
   const pendingStages = feature.pendingStages.filter(
-    (stage) => stage !== caseStage,
+    (stage) =>
+      stage !== caseStage &&
+      !(implementationComplete && stage === "implemented"),
   );
-  const pendingImplementation = feature.completedStages.includes("implemented")
+  const pendingImplementation = implementationComplete
     ? !(await verifyImplementation(root, feature))
     : feature.pendingStages.includes(caseStage);
-  if (pendingImplementation) {
+  if (pendingImplementation && !pendingStages.includes("implemented")) {
     const index = pendingStages.findIndex((stage) => downstream.has(stage));
     pendingStages.splice(
       index < 0 ? pendingStages.length : index,
       0,
-      caseStage,
+      "implemented",
     );
   }
   return {

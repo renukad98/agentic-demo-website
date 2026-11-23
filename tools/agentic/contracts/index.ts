@@ -351,7 +351,7 @@ export const roles = z.enum([
   "test-design-agent",
   "feature-development-agent",
   "test-review-agent",
-  "test-implementation-agent",
+  "test-implementation-agent", // Retained for historical workflow evidence.
   "playwright-automation-agent",
   "test-execution-reporting-agent",
   "xray-test-publisher-agent",
