@@ -6,7 +6,6 @@
     "reviewed",
     "branch-ready",
     "implemented",
-    "tests-implemented",
     "automated",
     "executed",
     "published",
@@ -19,24 +18,32 @@
   "skills": {
     "jira-story-agent": ".agents/skills/01-jira-story-agent/SKILL.md",
     "requirements-analysis-agent": ".agents/skills/02-requirements-analysis-agent/SKILL.md",
-    "feature-development-agent": ".agents/skills/05-feature-development-agent/SKILL.md",
-    "test-design-agent": ".agents/skills/03-test-design-agent/SKILL.md",
-    "test-review-agent": ".agents/skills/04-test-review-agent/SKILL.md",
-    "test-implementation-agent": ".agents/skills/06-test-implementation-agent/SKILL.md",
-    "playwright-automation-agent": ".agents/skills/07-playwright-automation-agent/SKILL.md",
-    "test-execution-reporting-agent": ".agents/skills/08-test-execution-reporting-agent/SKILL.md",
-    "xray-test-publisher-agent": ".agents/skills/09-xray-test-publisher-agent/SKILL.md",
-    "github-integration-agent": ".agents/skills/10-github-integration-agent/SKILL.md",
-    "qa-orchestrator": ".agents/skills/11-qa-orchestrator/SKILL.md"
+    "feature-development-agent": ".agents/skills/03-feature-development-agent/SKILL.md",
+    "test-design-agent": ".agents/skills/04-test-design-agent/SKILL.md",
+    "test-review-agent": ".agents/skills/05-test-review-agent/SKILL.md",
+    "playwright-automation-agent": ".agents/skills/06-playwright-automation-agent/SKILL.md",
+    "test-execution-reporting-agent": ".agents/skills/07-test-execution-reporting-agent/SKILL.md",
+    "xray-test-publisher-agent": ".agents/skills/08-xray-test-publisher-agent/SKILL.md",
+    "github-integration-agent": ".agents/skills/09-github-integration-agent/SKILL.md",
+    "qa-orchestrator": ".agents/skills/10-qa-orchestrator/SKILL.md"
   },
   "commands": {
-    "qa story": { "skill": "jira-story-agent", "stage": "story" },
+    "qa story": {
+      "skill": "jira-story-agent",
+      "stage": "story"
+    },
     "qa requirements": {
       "skill": "requirements-analysis-agent",
       "stage": "requirements"
     },
-    "qa test-design": { "skill": "test-design-agent", "stage": "designed" },
-    "qa test-review": { "skill": "test-review-agent", "stage": "reviewed" },
+    "qa test-design": {
+      "skill": "test-design-agent",
+      "stage": "designed"
+    },
+    "qa test-review": {
+      "skill": "test-review-agent",
+      "stage": "reviewed"
+    },
     "qa branch": {
       "skill": "github-integration-agent",
       "stage": "branch-ready"
@@ -45,11 +52,10 @@
       "skill": "feature-development-agent",
       "stage": "implemented"
     },
-    "qa test-implement": {
-      "skill": "test-implementation-agent",
-      "stage": "tests-implemented"
+    "qa e2e": {
+      "skill": "playwright-automation-agent",
+      "stage": "automated"
     },
-    "qa e2e": { "skill": "playwright-automation-agent", "stage": "automated" },
     "qa run": {
       "skill": "test-execution-reporting-agent",
       "stage": "executed"
@@ -89,11 +95,26 @@
       "actions": ["start", "finish"],
       "approval": "exact-chat-preview"
     },
-    "qa pr": { "skill": "github-integration-agent", "stage": "in-review" },
-    "qa close": { "skill": "qa-orchestrator", "stage": "done" },
-    "qa status": { "skill": "qa-orchestrator", "readOnly": true },
-    "qa summary": { "skill": "qa-orchestrator", "readOnly": true },
-    "qa next": { "skill": "qa-orchestrator", "readOnly": false }
+    "qa pr": {
+      "skill": "github-integration-agent",
+      "stage": "in-review"
+    },
+    "qa close": {
+      "skill": "qa-orchestrator",
+      "stage": "done"
+    },
+    "qa status": {
+      "skill": "qa-orchestrator",
+      "readOnly": true
+    },
+    "qa summary": {
+      "skill": "qa-orchestrator",
+      "readOnly": true
+    },
+    "qa next": {
+      "skill": "qa-orchestrator",
+      "readOnly": false
+    }
   },
   "approvalRequiredFor": [
     "application edits",

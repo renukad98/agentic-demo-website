@@ -100,7 +100,7 @@ const owners: Partial<Record<Stage, string>> = {
   ANALYZED: "requirements-analysis-agent",
   DESIGN_REVIEWED: "test-review-agent",
   IMPLEMENTED: "feature-development-agent",
-  TESTS_IMPLEMENTED: "test-implementation-agent",
+  TESTS_IMPLEMENTED: "feature-development-agent",
   BROWSER_IMPLEMENTED: "playwright-automation-agent",
   AUTOMATION_REVIEWED: "test-review-agent",
   VALIDATED: "test-execution-reporting-agent",
