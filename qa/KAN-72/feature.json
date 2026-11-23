@@ -1,0 +1,47 @@
+{
+  "storyKey": "KAN-72",
+  "stage": "automated",
+  "paused": false,
+  "completedStages": [
+    "story",
+    "requirements",
+    "designed",
+    "reviewed",
+    "branch-ready",
+    "implemented",
+    "tests-implemented",
+    "automated"
+  ],
+  "pendingStages": [
+    "executed",
+    "published",
+    "in-review",
+    "done"
+  ],
+  "testPlanKey": "KAN-75",
+  "title": "Add a standalone Welcome Page",
+  "nextCommand": "qa run",
+  "proposedBranch": "feature/kan-72-welcome-page",
+  "evidence": {
+    "testDesign": "artifacts/qa/KAN-72/design-01/test-cases.md",
+    "testReview": "artifacts/qa/KAN-72/design-01/review.md",
+    "traceability": "artifacts/qa/KAN-72/design-01/traceability.csv",
+    "testDesignReport": "artifacts/qa/KAN-72/design-01/run-report.md",
+    "requirements": "artifacts/qa/KAN-72/design-01/requirements.md",
+    "implementationReport": "artifacts/qa/KAN-72/implementation-01/run-report.md",
+    "testImplementation": "artifacts/qa/KAN-72/implementation-01/test-implementation.json",
+    "automationReview": "artifacts/qa/KAN-72/implementation-01/review.md",
+    "executionTraceability": "artifacts/qa/KAN-72/execution-01/traceability.csv",
+    "executionReport": "artifacts/qa/KAN-72/execution-01/run-report.md",
+    "playwrightJunit": "artifacts/qa/KAN-72/execution-01/xray-junit.xml"
+  },
+  "verifiedRecords": {
+    "jiraStory": "KAN-72",
+    "localBranch": {
+      "name": "feature/kan-72-welcome-page",
+      "worktree": ".",
+      "baseCommit": "479e218a854a4e71c2bae7a85e8e0369d855105c"
+    }
+  },
+  "testExecutionKey": "KAN-76"
+}
