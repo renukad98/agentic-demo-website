@@ -1,0 +1,46 @@
+{
+  "storyKey": "KAN-83",
+  "stage": "published",
+  "paused": false,
+  "completedStages": [
+    "story",
+    "requirements",
+    "designed",
+    "reviewed",
+    "branch-ready",
+    "implemented",
+    "automated",
+    "published",
+    "executed"
+  ],
+  "pendingStages": ["in-review", "done"],
+  "testPlanKey": "KAN-84",
+  "evidence": {
+    "testDesign": "artifacts/qa/KAN-83/design-01/test-cases.md",
+    "testReview": "artifacts/qa/KAN-83/design-01/review.md",
+    "jiraSource": "artifacts/qa/KAN-83/design-01/jira-source.md",
+    "testDesignReport": "artifacts/qa/KAN-83/design-01/run-report.md",
+    "requirements": "artifacts/qa/KAN-83/design-01/requirements.md",
+    "traceability": "artifacts/qa/KAN-83/design-01/traceability.csv",
+    "branchHandoff": "artifacts/qa/KAN-83/design-01/branch-handoff.md",
+    "testImplementation": "artifacts/qa/KAN-83/implementation-01/test-implementation.json",
+    "implementationReport": "artifacts/qa/KAN-83/implementation-01/run-report.md",
+    "browserImplementation": "artifacts/qa/KAN-83/automation-01/run-report.md",
+    "browserTest": "tests/e2e/login-password.spec.ts",
+    "automationReviewProof": {
+      "path": "artifacts/qa/KAN-83/automation-01/accepted-review.md",
+      "digest": "sha256:ee77bfe032ec9f79e20128ea117c1d0f37b9ad9f62734c96e172ab0ad09e4b05"
+    }
+  },
+  "title": "Add Show/Hide Password to Login Page",
+  "nextCommand": "qa run",
+  "proposedBranch": "feature/kan-83-login-password-visibility",
+  "verifiedRecords": {
+    "jiraStory": "KAN-83",
+    "localBranch": {
+      "name": "feature/kan-83-login-password-visibility",
+      "baseCommit": "4284f3acc6740f341f5b9cbe98a676d5a79a4e26"
+    }
+  },
+  "testExecutionKey": "KAN-90"
+}
