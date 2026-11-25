@@ -30,35 +30,43 @@
   "commands": {
     "qa story": {
       "skill": "jira-story-agent",
-      "stage": "story"
+      "stage": "story",
+      "purpose": "Read the selected Story or prepare a Story creation preview."
     },
     "qa requirements": {
       "skill": "requirements-analysis-agent",
-      "stage": "requirements"
+      "stage": "requirements",
+      "purpose": "Translate verified Story evidence into testable requirements."
     },
     "qa test-design": {
       "skill": "test-design-agent",
-      "stage": "designed"
+      "stage": "designed",
+      "purpose": "Turn accepted requirements into test cases and traceability."
     },
     "qa test-review": {
       "skill": "test-review-agent",
-      "stage": "reviewed"
+      "stage": "reviewed",
+      "purpose": "Review the test design before implementation."
     },
     "qa branch": {
       "skill": "github-integration-agent",
-      "stage": "branch-ready"
+      "stage": "branch-ready",
+      "purpose": "Prepare the feature branch handoff."
     },
     "qa implement": {
       "skill": "feature-development-agent",
-      "stage": "implemented"
+      "stage": "implemented",
+      "purpose": "Implement the approved feature and associated non-browser tests."
     },
     "qa e2e": {
       "skill": "playwright-automation-agent",
-      "stage": "automated"
+      "stage": "automated",
+      "purpose": "Implement the approved Playwright browser cases."
     },
     "qa run": {
       "skill": "test-execution-reporting-agent",
-      "stage": "executed"
+      "stage": "executed",
+      "purpose": "Run the approved tests and report verified results."
     },
     "qa xray": {
       "skill": "xray-test-publisher-agent",
@@ -80,40 +88,65 @@
         "linkTestsToStory": true,
         "verifyAfterPublish": true,
         "requireHumanApproval": true
-      }
+      },
+      "purpose": "Prepare and verify publication of reviewed Xray Tests."
     },
     "qa test-plan": {
       "skill": "xray-test-publisher-agent",
-      "approval": "exact-chat-preview"
+      "approval": "exact-chat-preview",
+      "purpose": "Prepare the required Xray Test Plan and Story link."
     },
     "qa xray-results": {
       "skill": "xray-test-publisher-agent",
-      "approval": "exact-chat-preview"
+      "approval": "exact-chat-preview",
+      "purpose": "Prepare the verified results for an approved Xray import."
     },
     "qa xray-status": {
       "skill": "xray-test-publisher-agent",
       "actions": ["start", "finish"],
-      "approval": "exact-chat-preview"
+      "approval": "exact-chat-preview",
+      "purpose": "Review optional Xray issue status work and prepare one eligible Jira transition."
     },
     "qa pr": {
       "skill": "github-integration-agent",
-      "stage": "in-review"
+      "stage": "in-review",
+      "purpose": "Prepare verified changes for GitHub delivery."
     },
     "qa close": {
       "skill": "qa-orchestrator",
-      "stage": "done"
+      "stage": "done",
+      "purpose": "Verify closeout evidence and prepare the Story status transition."
     },
     "qa status": {
       "skill": "qa-orchestrator",
-      "readOnly": true
+      "readOnly": true,
+      "purpose": "Report current Story and approval status."
     },
     "qa summary": {
       "skill": "qa-orchestrator",
-      "readOnly": true
+      "readOnly": true,
+      "purpose": "Summarize recorded QA evidence and progress."
     },
     "qa next": {
       "skill": "qa-orchestrator",
-      "readOnly": false
+      "readOnly": false,
+      "purpose": "Resolve and perform one permitted QA stage."
+    }
+  },
+  "handoffs": {
+    "safeAnalysis": ["qa requirements", "qa test-design", "qa test-review"],
+    "approvalGates": {
+      "qa story": "Jira creation needs its own approval; existing Story intake is read-only.",
+      "qa branch": "Approve exact local branch creation.",
+      "qa implement": "Approve application edits separately from any Jira transition.",
+      "qa e2e": "Confirm test-file scope; browser execution needs separate approval.",
+      "qa run": "Approve exact test execution scope.",
+      "qa xray": "Approve exact Xray publication and links.",
+      "qa test-plan": "Approve exact Test Plan creation or link.",
+      "qa xray-results": "Approve exact results import.",
+      "qa xray-status": "Approve each exact Jira status transition.",
+      "qa pr": "Stage, commit, push and PR creation have separate gates; merge is manual.",
+      "qa close": "Approve exact Jira Story closure."
     }
   },
   "approvalRequiredFor": [
