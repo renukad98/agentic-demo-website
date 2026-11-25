@@ -1,4 +1,8 @@
 import { initConsent } from "./cookieConsent.js";
+import { initLoginPasswordToggle } from "./loginPassword.js";
+
+initLoginPasswordToggle(document.querySelector("#login-form"));
+
 let csrf;
 async function api(path, options = {}) {
   if (options.method && options.method !== "GET") {
