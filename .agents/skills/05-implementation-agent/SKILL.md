@@ -3,7 +3,7 @@ name: feature-development-agent
 description: Implement an explicitly approved local feature together with its associated automated tests.
 ---
 
-# Feature Development Agent
+# Implementation Agent
 
 ## Shared contract
 
