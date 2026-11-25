@@ -14,7 +14,7 @@
 | Requirements Analysis           | Requirements Analysis Agent        |                |                        | pending           |                      |
 | Test Design                     | Test Design Agent                  |                |                        | pending           |                      |
 | Pre-development Test Review     | Test Review Agent                  |                |                        | pending           |                      |
-| Feature Development + tests     | Feature Development Agent          |                |                        | pending           |                      |
+| Implementation Agent + tests     | Implementation Agent          |                |                        | pending           |                      |
 | Playwright Automation           | Playwright Automation Agent        |                |                        | pending           |                      |
 | Post-implementation Test Review | Test Review Agent                  |                |                        | pending           |                      |
 | Test Execution                  | Test Execution and Reporting Agent |                |                        | pending           |                      |
@@ -56,7 +56,7 @@ After each verified stage record the completed agent, generated artifact paths, 
 ## Approved-case implementation handoff
 
 - Story, run, source revision or digest, and accepted design SHA-256
-- Feature Development test references and fixture evidence
+- Implementation Agent test references and fixture evidence
 - Case ID, requirement and acceptance IDs, level, disposition, automation identity, exact path and title
 - Browser cases and fixture requirements handed to Playwright Automation
 - Manual or audit evidence route, coverage gaps, blockers and assigned owner

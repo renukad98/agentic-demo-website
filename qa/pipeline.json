@@ -18,9 +18,9 @@
   "skills": {
     "jira-story-agent": ".agents/skills/01-jira-story-agent/SKILL.md",
     "requirements-analysis-agent": ".agents/skills/02-requirements-analysis-agent/SKILL.md",
-    "feature-development-agent": ".agents/skills/03-feature-development-agent/SKILL.md",
-    "test-design-agent": ".agents/skills/04-test-design-agent/SKILL.md",
-    "test-review-agent": ".agents/skills/05-test-review-agent/SKILL.md",
+    "feature-development-agent": ".agents/skills/05-implementation-agent/SKILL.md",
+    "test-design-agent": ".agents/skills/03-test-design-agent/SKILL.md",
+    "test-review-agent": ".agents/skills/04-test-review-agent/SKILL.md",
     "playwright-automation-agent": ".agents/skills/06-playwright-automation-agent/SKILL.md",
     "test-execution-reporting-agent": ".agents/skills/07-test-execution-reporting-agent/SKILL.md",
     "xray-test-publisher-agent": ".agents/skills/08-xray-test-publisher-agent/SKILL.md",

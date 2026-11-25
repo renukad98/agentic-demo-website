@@ -27,9 +27,9 @@ For a bounded task: `Use $test-review-agent to review <local test-design path> a
 | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | [jira-story-agent](../../.agents/skills/01-jira-story-agent/SKILL.md)                             | Retrieve source stories; prepare eventual status-change proposals      |
 | [requirements-analysis-agent](../../.agents/skills/02-requirements-analysis-agent/SKILL.md)       | Derive testable requirements and resolve ambiguities                   |
-| [test-design-agent](../../.agents/skills/04-test-design-agent/SKILL.md)                           | Design cases and coverage                                              |
-| [test-review-agent](../../.agents/skills/05-test-review-agent/SKILL.md)                           | Review coverage, oracles and test quality                              |
-| [feature-development-agent](../../.agents/skills/03-feature-development-agent/SKILL.md)           | Implement approved behavior and associated automated tests             |
+| [test-design-agent](../../.agents/skills/03-test-design-agent/SKILL.md)                           | Design cases and coverage                                              |
+| [test-review-agent](../../.agents/skills/04-test-review-agent/SKILL.md)                           | Review coverage, oracles and test quality                              |
+| [Implementation Agent](../../.agents/skills/05-implementation-agent/SKILL.md)           | Implement approved behavior and associated automated tests             |
 | [playwright-automation-agent](../../.agents/skills/06-playwright-automation-agent/SKILL.md)       | Implement repeatable browser automation                                |
 | [test-execution-reporting-agent](../../.agents/skills/07-test-execution-reporting-agent/SKILL.md) | Execute checks and analyze evidence                                    |
 | [xray-test-publisher-agent](../../.agents/skills/08-xray-test-publisher-agent/SKILL.md)           | Prepare reviewed payloads; publish only when separately approved       |
@@ -40,9 +40,9 @@ Each skill defines responsibilities, inputs, outputs, dependencies, autonomous s
 
 ## Workflow and artifact contract
 
-Jira Story → Requirements Analysis → Test Design → Design Review and implementation approval → Feature Development with unit/API tests → Playwright Automation → Coverage/Test Review → Test Execution → separately approved Xray stages → separately approved GitHub delivery.
+Jira Story → Requirements Analysis → Test Design → Design Review and implementation approval → Implementation Agent with unit/API tests → Playwright Automation → Coverage/Test Review → Test Execution → separately approved Xray stages → separately approved GitHub delivery.
 
-Test Design precedes development. Development includes associated unit/API tests immediately. Feature Development maps those tests to approved cases and fills non-browser gaps. Playwright Automation owns browser tests and receives the approved browser case list from Feature Development. Test Design subsequently checks and extends coverage; review and execution can send work back to development or design. Browser automation implements reviewed cases. This sequence does not postpone developers' tests until the QA stage.
+Test Design precedes development. Development includes associated unit/API tests immediately. Implementation Agent maps those tests to approved cases and fills non-browser gaps. Playwright Automation owns browser tests and receives the approved browser case list from Implementation Agent. Test Design subsequently checks and extends coverage; review and execution can send work back to development or design. Browser automation implements reviewed cases. This sequence does not postpone developers' tests until the QA stage.
 
 For future approved work, keep a run under `artifacts/qa/<story-key>/<run-id>/` inside this repository, outside served assets. Run IDs must be unique. Do not create feature artifacts during Phase 2B just to suggest work has begun. Use these templates:
 
