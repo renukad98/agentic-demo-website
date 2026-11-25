@@ -115,6 +115,8 @@ The [CI workflow](../../.github/workflows/ci.yml) runs on PRs to `main`, pushes 
 
 `qa close` uses the Story evidence gate and separate Jira approval. A verified post-merge CI import receipt can satisfy the applicable evidence gate when the approved test scope, merge commit, CI run, import result, and Test Execution identity match. Failed tests, incomplete or mismatched evidence, and unsuccessful imports block closure. Applicable Test and Test Plan issue-status transitions retain their detailed readback rules. See the [post-merge receipt policy](approval-policy.md#post-merge-import-receipt-for-story-closeout).
 
+<a id="workflow-and-artifact-contract"></a>
+
 ## Evidence and traceability
 
 Store authorized runs under `artifacts/qa/<story-key>/<run-id>/`, outside served assets. Use unique run IDs and sanitized evidence. Preserve existing evidence and journals. Create artifacts for actual authorized work.
