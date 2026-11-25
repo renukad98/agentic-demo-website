@@ -37,6 +37,8 @@ After Playwright implementation, use the existing `qa test-review` route with an
 
 Each protected operation must reach its own exact preview and stop for approval. After approval, recheck only that operation, verify its outcome, and resolve the next handoff again. A previous OK cannot authorize another action. Recommendations grant no authorization and leave all existing evidence, publication, and approval gates in force.
 
+After Agent 09 verifies a merge and its existing post-merge validation, use its remote cleanup assessment as an optional follow-up. If eligible and Story closeout does not take priority, surface Agent 09, the reason, and the exact branch deletion preview and owner `OK` in **What's next?** Use the existing scoped chat handoff without registering a command or recording a cleanup stage. If closeout is pending, keep it as the recommended action and offer eligible cleanup when closeout no longer takes priority. Declined, blocked, or unavailable cleanup leaves Jira readiness unchanged. A cleanup approval applies only to the previewed remote ref and tip.
+
 ## Outputs
 
 Stage ledger, owner handoffs, complete traceability, local readiness decision and reviewable external proposals. Use the [artifact templates](../../../docs/agent-framework/README.md#workflow-and-artifact-contract); hand off paths, revisions, status and blockers to the orchestrator.
