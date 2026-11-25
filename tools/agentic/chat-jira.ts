@@ -7,11 +7,35 @@ import {
   canonical,
   fingerprint,
   noSymlinks,
+  objectDigest,
   within,
   writeExclusive,
 } from "./artifacts.js";
 
 const key = z.string().regex(/^[A-Z][A-Z0-9_]{0,9}-[1-9]\d*$/);
+const caseId = z.string().regex(/^[A-Z][A-Z0-9-]*-TC-\d+$/);
+const sha256 = z.string().regex(/^sha256:[a-f0-9]{64}$/);
+const closeoutReceipt = z.object({
+  storyKey: key,
+  planKey: key,
+  mergeCommit: z.string().regex(/^[a-f0-9]{40}$/),
+  ciRunId: z.string().regex(/^[1-9]\d*$/),
+  branch: z.literal("main"),
+  event: z.literal("push"),
+  importConclusion: z.literal("success"),
+  evidenceDigest: sha256,
+  execution: z.object({
+    key,
+    id: z.string().regex(/^[1-9]\d*$/),
+    issueType: z.literal("Test Execution"),
+  }),
+  designDigest: sha256,
+  scopeReview: z.object({ path: z.string(), sha256 }).optional(),
+  imported: z
+    .array(z.object({ caseId, testKey: key, outcome: z.literal("passed") }))
+    .min(1),
+  local: z.array(z.object({ caseId, outcome: z.literal("passed") })),
+});
 const pointer = z.object({ storyKey: key, featureFile: z.string() });
 const feature = z
   .object({
@@ -45,6 +69,25 @@ const context = z.object({
       z.object({ id: z.string().min(1), name: z.string(), to: z.string() }),
     )
     .optional(),
+  delivery: z
+    .object({
+      mergeCommit: z.string().regex(/^[a-f0-9]{40}$/),
+      ciRunId: z.string().regex(/^[1-9]\d*$/),
+      ciHead: z.string(),
+      conclusion: z.literal("success"),
+      postMergeImport: z.discriminatedUnion("state", [
+        z.object({
+          state: z.literal("verified"),
+          executionKey: key,
+          receipt: closeoutReceipt.optional(),
+        }),
+        z.object({
+          state: z.literal("not-applicable"),
+          reason: z.string().trim().min(1),
+        }),
+      ]),
+    })
+    .optional(),
   draft: z
     .object({
       summary: z.string().trim().min(1).max(255),
@@ -53,7 +96,6 @@ const context = z.object({
     })
     .optional(),
 });
-type Context = z.infer<typeof context>;
 
 async function read(root: string, relative: string) {
   const file = within(root, relative);
@@ -82,12 +124,172 @@ function json(value: unknown) {
   return JSON.stringify(value, null, 2) + "\n";
 }
 
+async function verifyCloseoutReceipt(
+  root: string,
+  state: z.infer<typeof feature>,
+  story: z.infer<typeof issue>,
+  delivery: NonNullable<z.infer<typeof context>["delivery"]>,
+  receipt: z.infer<typeof closeoutReceipt>,
+) {
+  const published = z
+    .object({
+      testPlanKey: key,
+      testExecutionKey: key.optional(),
+      evidence: z.object({ testDesign: z.string(), testReview: z.string() }),
+      verifiedRecords: z
+        .object({
+          postMergeExecution: z
+            .object({
+              testExecutionKey: key,
+              ciRunId: z.string().optional(),
+              mergeCommit: z.string().optional(),
+              branch: z.string().optional(),
+              testPlanKey: key.optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+    })
+    .parse(state);
+  const recorded = published.verifiedRecords?.postMergeExecution;
+  if (
+    !state.completedStages.includes("reviewed") ||
+    !state.completedStages.includes("published") ||
+    delivery.postMergeImport.state !== "verified" ||
+    receipt.storyKey !== story.key ||
+    receipt.planKey !== published.testPlanKey ||
+    receipt.mergeCommit !== delivery.mergeCommit ||
+    receipt.ciRunId !== delivery.ciRunId ||
+    receipt.execution.key !== delivery.postMergeImport.executionKey ||
+    receipt.execution.key !==
+      (recorded?.testExecutionKey ?? published.testExecutionKey) ||
+    (recorded?.ciRunId && recorded.ciRunId !== receipt.ciRunId) ||
+    (recorded?.mergeCommit && recorded.mergeCommit !== receipt.mergeCommit) ||
+    (recorded?.branch && recorded.branch !== receipt.branch) ||
+    (recorded?.testPlanKey && recorded.testPlanKey !== receipt.planKey) ||
+    [story.key, receipt.planKey].includes(receipt.execution.key) ||
+    receipt.execution.id === story.id ||
+    ![
+      receipt.planKey,
+      receipt.execution.key,
+      ...receipt.imported.map((row) => row.testKey),
+    ].every((value) => value.startsWith(story.projectKey + "-"))
+  )
+    throw new Error(
+      "Post-merge import receipt does not match the recorded Story, Plan, CI run or Execution",
+    );
+
+  const prefix = "artifacts/qa/" + story.key + "/";
+  const readStoryEvidence = async (path: string) => {
+    if (
+      !path.startsWith(prefix) ||
+      path.includes("\\") ||
+      path.split("/").includes("..")
+    )
+      throw new Error("Closeout evidence must belong to the Story");
+    return (await read(root, path)).source;
+  };
+  const [design, review, mappings] = await Promise.all([
+    readStoryEvidence(published.evidence.testDesign),
+    readStoryEvidence(published.evidence.testReview),
+    readStoryEvidence(prefix + "xray-test-keys.json"),
+  ]);
+  const designHash = digest(design);
+  const { hasAcceptedDesignReview } = await import("./qa-next.js");
+  if (
+    receipt.designDigest !== designHash ||
+    !hasAcceptedDesignReview(review, designHash)
+  )
+    throw new Error("The reviewed design does not match the closeout receipt");
+  const { parseReviewedCases } = await import("./chat-xray.js");
+  const reviewed = parseReviewedCases(design, story.key).map(
+    (item) => item.caseId,
+  );
+  const keys = z.record(caseId, key).parse(JSON.parse(mappings));
+  const ordered = (items: string[]) => [...items].sort();
+  const scope = {
+    xray: ordered(receipt.imported.map((row) => row.caseId)),
+    local: ordered(receipt.local.map((row) => row.caseId)),
+  };
+  if (
+    reviewed.some((id) => !id.startsWith(story.key + "-TC-")) ||
+    canonical(ordered([...scope.xray, ...scope.local])) !==
+      canonical(ordered(reviewed)) ||
+    receipt.imported.some((row) => keys[row.caseId] !== row.testKey) ||
+    new Set(receipt.imported.map((row) => row.testKey)).size !==
+      receipt.imported.length
+  )
+    throw new Error(
+      "Passing results must match the complete reviewed case-to-Test scope",
+    );
+
+  let scopeReview = review;
+  if (receipt.scopeReview) {
+    scopeReview = await readStoryEvidence(receipt.scopeReview.path);
+    if (
+      digest(scopeReview) !== receipt.scopeReview.sha256 ||
+      !/^- Decision: accepted for lifecycle evidence\.\r?$/m.test(scopeReview)
+    )
+      throw new Error(
+        "The approved publication scope review is missing, stale or unaccepted",
+      );
+  }
+  if (
+    scope.local.length ||
+    receipt.scopeReview ||
+    /^- Lifecycle evidence scope:/m.test(review)
+  ) {
+    const accepted =
+      /^- Lifecycle evidence scope: (sha256:[a-f0-9]{64})\r?$/m.exec(
+        scopeReview,
+      )?.[1];
+    const inDesignOrder = {
+      xray: reviewed.filter((id) => scope.xray.includes(id)),
+      local: reviewed.filter((id) => scope.local.includes(id)),
+    };
+    if (
+      !accepted ||
+      ![scope, inDesignOrder].some(
+        (candidate) =>
+          objectDigest({ designHash, scope: candidate }) === accepted,
+      )
+    )
+      throw new Error(
+        "The mixed closeout scope must match an accepted publication scope",
+      );
+    for (const id of scope.local) {
+      const section = design
+        .split(/^## /m)
+        .find((part) => part.startsWith(id + " "));
+      const levels = section
+        ?.split(/\r?\n/)
+        .filter((line) => /^- Level:/i.test(line));
+      if (
+        levels?.length !== 1 ||
+        !/^- Level:\s*(?:API(?:-only)?|DOM|JSDOM|DOM\/JSDOM|Unit(?: test)?)\s*\.?\s*$/i.test(
+          levels[0]!,
+        )
+      )
+        throw new Error(
+          "Only reviewed non-browser cases may use local closeout evidence",
+        );
+    }
+  }
+  return objectDigest({
+    receipt,
+    designHash,
+    review: digest(review),
+    scopeReview: digest(scopeReview),
+    mappings: digest(mappings),
+  });
+}
+
 export async function prepareJira(
   root: string,
   command: string,
-  input: Context,
+  input: unknown,
 ) {
-  const { cloudId, story, transitions, draft } = context.parse(input);
+  const { cloudId, story, transitions, draft, delivery } = context.parse(input);
   const argument = /^qa story\s+(.+)$/is.exec(command)?.[1]?.trim();
   if (argument && key.safeParse(argument.toUpperCase()).success)
     return {
@@ -160,6 +362,32 @@ export async function prepareJira(
     !story.key.startsWith(story.projectKey + "-")
   )
     throw new Error("Verified active Jira Story required");
+  let receiptRevision: string | undefined;
+  if (target === "Done" && delivery) {
+    const imported = delivery.postMergeImport;
+    if (delivery.mergeCommit !== delivery.ciHead)
+      throw new Error("Verified CI must run on the merge commit");
+    if (imported.state === "verified") {
+      if (!imported.receipt)
+        throw new Error(
+          "Verified import receipt is required when supplied as closeout evidence",
+        );
+      receiptRevision = await verifyCloseoutReceipt(
+        root,
+        state,
+        story,
+        delivery,
+        imported.receipt,
+      );
+    } else if (
+      state.testPlanKey ||
+      state.completedStages.includes("published")
+    ) {
+      throw new Error(
+        "Post-merge import cannot be marked not applicable for published Story closeout",
+      );
+    }
+  }
   const matches =
     transitions?.filter((transition) => transition.to === target) ?? [];
   if (story.status !== target && matches.length !== 1)
@@ -178,6 +406,7 @@ export async function prepareJira(
     },
     currentRevision: digest(current.source),
     featureRevision: digest(record.source),
+    ...(receiptRevision ? { receiptRevision, delivery } : {}),
   };
 }
 
@@ -188,7 +417,7 @@ function digest(source: string) {
 export async function approvedJira(
   root: string,
   command: string,
-  input: Context,
+  input: unknown,
   preview: unknown,
   reply: string,
 ) {
@@ -216,7 +445,7 @@ function markdownText(value: string) {
 export async function recordJira(
   root: string,
   command: string,
-  input: Context,
+  input: unknown,
   preview: unknown,
   reply: string,
   readback: unknown,

@@ -12,6 +12,10 @@ For `qa story`, the Jira Story Agent may read an existing Story or prepare creat
 
 Treat In Progress and Done as separate transitions. Read the current status and valid transitions and show the tenant, project, Story key, current status, target status and exact transition ID and payload. Offer In Progress when approved implementation is ready to begin. Offer Done after verifying the owner's manual merge and required QA and publication evidence, including the post-merge import when applicable. Each transition requires its own `OK` and status readback.
 
+### Post-merge import receipt for Story closeout
+
+Agent 10 may use a verified post-merge import receipt for the existing qa close command. Verify the successful main push run on the actual merge commit, the successful Story import, the Jira-read Test Execution identity, exact approved imported case mappings and passing outcomes for every accepted browser and local-only case. Supply delivery.postMergeImport.receipt, binding the Story, Plan, merge, CI run, Execution and evidence digest. For mixed scope use the accepted scope digest from the design review or its fingerprinted scope review artifact. Invalid or incomplete supplied evidence blocks closeout. The existing exact preview, owner OK and Jira status readback still apply. Detailed readback still applies to Xray issue lifecycle commands.
+
 ## GitHub delivery
 
 Keep separate scoped local previews and approvals for branch creation, staging and commits. After all local QA gates pass, preview a normal push with the repository, remote, source commit and destination branch. Preview PR creation separately with the repository, head, base, title, body and reviewed revision. Each external action requires its own `OK`. Verify the remote branch or PR after dispatch. Hand the verified PR to the owner for manual merge.
