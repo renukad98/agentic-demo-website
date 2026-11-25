@@ -10,7 +10,10 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { resolveQaNext } from "../../tools/agentic/qa-next.js";
+import {
+  recommendQaHandoff,
+  resolveQaNext,
+} from "../../tools/agentic/qa-next.js";
 import { validateFinalMappings } from "../../tools/agentic/test-implementation.js";
 import { Workflow } from "../../tools/agentic/workflow.js";
 import {
@@ -754,13 +757,240 @@ test("qa next reconciles active legacy records even after publication and respec
   assert.equal(pipeline.stages.includes("tests-implemented"), false);
   assert.equal(pipeline.commands["qa test-implement"], undefined);
   assert.equal(Object.keys(pipeline.skills).length, 10);
-  assert.deepEqual(pipeline.commands["qa implement"], {
-    skill: "feature-development-agent",
-    stage: "implemented",
-  });
+  assert.equal(pipeline.commands["qa implement"].skill, "feature-development-agent");
+  assert.equal(pipeline.commands["qa implement"].stage, "implemented");
   for (const path of Object.values(pipeline.skills)) {
     await readFile(new URL("../../" + path, import.meta.url), "utf8");
   }
+});
+
+test("QA handoff recommends safe sequential work and stops at protected gates", async (t) => {
+  const { root } = await fixture(t);
+  await mkdir(join(root, "qa"), { recursive: true });
+  await writeFile(
+    join(root, "qa/pipeline.json"),
+    await readFile(new URL("../../qa/pipeline.json", import.meta.url)),
+  );
+  const runScope = { storyKey: "SYN-101", runId: "design-01" };
+  const path = "artifacts/qa/SYN-101/design-01/requirements.md";
+  await mkdir(join(root, "artifacts/qa/SYN-101/design-01"), { recursive: true });
+  await writeFile(join(root, path), "reviewed requirements");
+  const feature = {
+    storyKey: "SYN-101",
+    stage: "requirements",
+    completedStages: ["story", "requirements"],
+    pendingStages: ["designed", "reviewed", "branch-ready"],
+  };
+  const completed = {
+    command: "qa requirements",
+    artifacts: [{ path, digest: fingerprint("reviewed requirements") }],
+  };
+  const oneStep = await recommendQaHandoff(root, feature, { completed });
+  assert.equal(oneStep.disposition, "stop");
+  assert.equal(oneStep.completed?.agent, "requirements-analysis-agent");
+  assert.deepEqual(oneStep.completed?.artifacts, completed.artifacts);
+  assert.equal(oneStep.next?.agent, "test-design-agent");
+  assert.equal(oneStep.next?.command, "qa test-design");
+  assert.equal(oneStep.confirmation, "Confirm `qa test-design` for SYN-101 only.");
+  assert.deepEqual(oneStep.blockers, []);
+  assert.match(oneStep.next?.purpose ?? "", /test cases/);
+  assert.match(oneStep.reason, /designed/);
+  assert.equal(oneStep.approvalStatus, "not-required-for-analysis");
+  assert.equal(oneStep.continuationStatus, "confirmation-required");
+  const missingPrerequisite = await recommendQaHandoff(
+    root,
+    { ...feature, completedStages: ["story"] },
+    { mode: "end-to-end" },
+  );
+  assert.equal(missingPrerequisite.disposition, "stop");
+  assert.match(missingPrerequisite.reason, /requirements stage/);
+  assert.equal(
+    (await recommendQaHandoff(root, feature, { mode: "read-only" }))
+      .disposition,
+    "stop",
+  );
+  for (const scope of [undefined, { ...runScope, storyKey: "SYN-102" }, { ...runScope, runId: "design-02" }]) {
+    const handoff = await recommendQaHandoff(root, feature, { mode: "end-to-end", runScope: scope, completed });
+    assert.equal(handoff.disposition, "stop");
+    assert.equal(handoff.continuationStatus, "confirmation-required");
+  }
+  const authorized = await recommendQaHandoff(root, feature, { mode: "end-to-end", runScope, completed });
+  assert.equal(authorized.disposition, "continue-analysis");
+  assert.equal(authorized.continuationStatus, "authorized-for-run");
+  for (const stage of [
+    "branch-ready",
+    "implemented",
+    "automated",
+    "executed",
+    "published",
+    "in-review",
+    "done",
+  ]) {
+    const next = await recommendQaHandoff(
+      root,
+      { ...feature, testPlanKey: "SYN-99", pendingStages: [stage] },
+      { mode: "end-to-end", runScope, approval: "OK" },
+    );
+    assert.equal(next.approvalStatus, "required", stage);
+    assert.equal(next.continuationStatus, "approval-required", stage);
+    assert.equal(next.disposition, "stop", stage);
+  }
+  for (const status of ["blocked", "failed", "declined", "uncertain"]) {
+    const next = await recommendQaHandoff(root, feature, {
+      mode: "end-to-end",
+      status,
+    });
+    assert.equal(next.disposition, "stop");
+    assert.equal(next.next, null);
+    assert.match(next.reason, new RegExp(status));
+  }
+  for (const override of [
+    { paused: true },
+    { storyKey: "KAN-29" },
+    { stage: "done" },
+  ]) {
+    assert.equal(
+      (await recommendQaHandoff(root, { ...feature, ...override })).next,
+      null,
+    );
+  }
+  await writeFile(join(root, path), "changed requirements");
+  const stale = await recommendQaHandoff(root, feature, {
+    mode: "end-to-end",
+    completed,
+  });
+  assert.equal(stale.completed, undefined);
+  assert.equal(stale.next, null);
+  assert.match(stale.reason, /stale/);
+});
+
+test("QA handoff verifies automation review and allows local execution without a Test Plan", async (t) => {
+  const { root } = await fixture(t);
+  await mkdir(join(root, "qa"), { recursive: true });
+  await writeFile(
+    join(root, "qa/pipeline.json"),
+    await readFile(new URL("../../qa/pipeline.json", import.meta.url)),
+  );
+  const path = "artifacts/qa/SYN-101/automation-review.md";
+  await mkdir(join(root, "artifacts/qa/SYN-101"), { recursive: true });
+  const body = "- Decision: accepted for automation.\n";
+  await writeFile(join(root, path), body);
+  const feature = {
+    storyKey: "SYN-101",
+    stage: "automated",
+    completedStages: ["automated"],
+    pendingStages: ["executed"],
+  };
+  const absent = await recommendQaHandoff(root, feature, {
+    mode: "end-to-end",
+    runScope: { storyKey: "SYN-101", runId: "design-01" },
+  });
+  assert.equal(absent.next?.command, "qa test-review");
+  assert.equal(absent.next?.agent, "test-review-agent");
+  assert.equal(absent.disposition, "continue-analysis");
+  const reviewed = {
+    ...feature,
+    evidence: { automationReviewProof: { path, digest: fingerprint(body) } },
+  };
+  const noPlan = await recommendQaHandoff(root, reviewed, {
+    mode: "end-to-end",
+  });
+  assert.equal(noPlan.next?.command, "qa run");
+  assert.match(noPlan.approvalRequirement ?? "", /execution scope/);
+  assert.equal(noPlan.disposition, "stop");
+  const ready = { ...reviewed, testPlanKey: "SYN-99" };
+  assert.equal((await recommendQaHandoff(root, ready)).next?.command, "qa run");
+  await writeFile(join(root, path), "- Decision: changes requested.\n");
+  assert.equal(
+    (await recommendQaHandoff(root, ready)).next?.command,
+    "qa test-review",
+  );
+  const staleImplementation = await recommendQaHandoff(root, {
+    ...ready,
+    completedStages: ["implemented", "automated"],
+  });
+  assert.equal(staleImplementation.next?.command, "qa implement");
+  assert.match(staleImplementation.reason, /stale/);
+});
+
+test("legacy automation review is reusable only with current browser, source and mapping evidence", async (t) => {
+  const { root } = await fixture(t);
+  const dir = "artifacts/qa/SYN-101";
+  const path = dir + "/legacy-review.md";
+  const browserTest = "tests/e2e/legacy.spec.ts";
+  const caseMappings = dir + "/case-mappings.json";
+  const files = {
+    [browserTest]: "browser cases",
+    "src/app.ts": "application",
+    [caseMappings]: "reviewed mappings",
+  };
+  for (const directory of ["qa", dir, "tests/e2e", "src"])
+    await mkdir(join(root, directory), { recursive: true });
+  await writeFile(
+    join(root, "qa/pipeline.json"),
+    await readFile(new URL("../../qa/pipeline.json", import.meta.url)),
+  );
+  for (const [file, content] of Object.entries(files))
+    await writeFile(join(root, file), content);
+  const feature = {
+    storyKey: "SYN-101",
+    stage: "automated",
+    completedStages: ["automated"],
+    pendingStages: ["executed"],
+    evidence: { automationReview: path, browserTest, caseMappings },
+  };
+  const report = (decision: string, reviewed: Record<string, string> = files) =>
+    [
+      "- Decision: " + decision,
+      "",
+      "## Reviewed revisions",
+      ...Object.entries(reviewed).map(
+        ([file, content]) => "- " + file + " " + fingerprint(content),
+      ),
+    ].join("\n");
+
+  await writeFile(join(root, path), report("accepted for automation."));
+  assert.equal(
+    (await recommendQaHandoff(root, feature)).next?.command,
+    "qa run",
+  );
+  assert.equal(
+    (
+      await recommendQaHandoff(root, {
+        ...feature,
+        evidence: {
+          ...feature.evidence,
+          automationReviewProof: { path, digest: fingerprint("stale proof") },
+        },
+      })
+    ).next?.command,
+    "qa test-review",
+  );
+  await writeFile(
+    join(root, path),
+    report("accepted for case implementation."),
+  );
+  assert.equal(
+    (await recommendQaHandoff(root, feature)).next?.command,
+    "qa test-review",
+  );
+  await writeFile(
+    join(root, path),
+    report("accepted for automation.", {
+      [browserTest]: files[browserTest]!,
+      "src/app.ts": files["src/app.ts"],
+    }),
+  );
+  assert.equal(
+    (await recommendQaHandoff(root, feature)).next?.command,
+    "qa test-review",
+  );
+  await writeFile(join(root, path), report("accepted for automation."));
+  await writeFile(join(root, browserTest), "changed browser cases");
+  assert.equal(
+    (await recommendQaHandoff(root, feature)).next?.command,
+    "qa test-review",
+  );
 });
 
 test("paused Stories cannot begin or advance a typed delivery run", async (t) => {
@@ -1062,3 +1292,34 @@ for (const browserCoverage of [false, true]) {
     },
   );
 }
+
+test("blocked handoffs scope a safe recovery or identify the missing dependency", async (t) => {
+  const { root } = await fixture(t);
+  await mkdir(join(root, "qa"), { recursive: true });
+  await writeFile(join(root, "qa/pipeline.json"), await readFile(new URL("../../qa/pipeline.json", import.meta.url)));
+  const feature = { storyKey: "SYN-101", stage: "published",
+    completedStages: ["published"], pendingStages: ["executed"] };
+  const input = { status: "blocked", reason: "Requirements need reconciliation.",
+    blocker: { dependency: "Accepted requirements" },
+    mode: "end-to-end", runScope: { storyKey: feature.storyKey, runId: "run-01" } };
+  const generic = await recommendQaHandoff(root, feature, { ...input, blocker: {
+    dependency: "Reviewed requirement reconciliation", remaining: ["Confirmed requirement revision"],
+    review: { agent: "requirements-analysis-agent", purpose: "Compare the available requirement revisions." },
+  } });
+  assert.equal(generic.confirmation, "Confirm requirements-analysis-agent read-only blocker review for SYN-101.");
+  assert.equal(generic.next?.agent, "requirements-analysis-agent");
+  assert.deepEqual(generic.blockers, ["Reviewed requirement reconciliation", "Confirmed requirement revision"]);
+  const unavailable = await recommendQaHandoff(root, feature, { ...input,
+    blocker: { dependency: "Verified evidence source" } });
+  assert.equal(unavailable.next, null);
+  assert.equal(unavailable.confirmation, null);
+  assert.deepEqual(unavailable.blockers, ["Verified evidence source"]);
+  for (const status of ["declined", "uncertain", "failed"]) {
+    const stopped = await recommendQaHandoff(root, feature, { ...input, status });
+    assert.equal(stopped.disposition, "stop");
+    assert.equal(stopped.confirmation, null);
+  }
+  const paused = await recommendQaHandoff(root, { ...feature, paused: true }, input);
+  assert.equal(paused.next, null);
+  assert.equal(paused.confirmation, null);
+});

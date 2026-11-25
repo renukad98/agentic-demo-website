@@ -8,20 +8,23 @@
 
 ## Stage ledger
 
-| Stage                       | Owner                              | Input revision | Output path / revision | Status            | Blocker / next owner |
-| --------------------------- | ---------------------------------- | -------------- | ---------------------- | ----------------- | -------------------- |
-| Jira Story                  | Jira Story Agent                   |                |                        | pending           |                      |
-| Requirements Analysis       | Requirements Analysis Agent        |                |                        | pending           |                      |
-| Feature Development + tests | Feature Development Agent          |                |                        | pending           |                      |
-| Test Design                 | Test Design Agent                  |                |                        | pending           |                      |
-| Test Review                 | Test Review Agent                  |                |                        | pending           |                      |
-| Playwright Automation       | Playwright Automation Agent        |                |                        | pending           |                      |
-| Test Execution              | Test Execution and Reporting Agent |                |                        | pending           |                      |
-| Xray Publication            | Xray Test Publisher Agent          |                |                        | awaiting approval |                      |
-| GitHub Pull Request         | GitHub Integration Agent           |                |                        | awaiting approval |                      |
-| Jira Status Update          | Jira Story Agent                   |                |                        | awaiting approval |                      |
+| Stage                           | Owner                              | Input revision | Output path / revision | Status            | Blocker / next owner |
+| ------------------------------- | ---------------------------------- | -------------- | ---------------------- | ----------------- | -------------------- |
+| Jira Story                      | Jira Story Agent                   |                |                        | pending           |                      |
+| Requirements Analysis           | Requirements Analysis Agent        |                |                        | pending           |                      |
+| Test Design                     | Test Design Agent                  |                |                        | pending           |                      |
+| Pre-development Test Review     | Test Review Agent                  |                |                        | pending           |                      |
+| Feature Development + tests     | Feature Development Agent          |                |                        | pending           |                      |
+| Playwright Automation           | Playwright Automation Agent        |                |                        | pending           |                      |
+| Post-implementation Test Review | Test Review Agent                  |                |                        | pending           |                      |
+| Test Execution                  | Test Execution and Reporting Agent |                |                        | pending           |                      |
+| Xray Publication                | Xray Test Publisher Agent          |                |                        | awaiting approval |                      |
+| GitHub Pull Request             | GitHub Integration Agent           |                |                        | awaiting approval |                      |
+| Jira Status Update              | Jira Story Agent                   |                |                        | awaiting approval |                      |
 
 Stage statuses: pending / in progress / complete / blocked / awaiting approval / declined. Keep optional external stages pending or declined when not performed.
+
+After each verified stage record the completed agent, generated artifact paths, next recommended agent and command, reason, and approval status. Record failed, declined, blocked or uncertain outcomes without advancing dependent work.
 
 ## Execution evidence
 

@@ -55,6 +55,16 @@ For future approved work, keep a run under `artifacts/qa/<story-key>/<run-id>/` 
 
 Use stable IDs such as `<story>-REQ-001` and `<story>-TC-001`, preserving them through revisions. Record source revision or sanitized content fingerprint, and implementation/test file hashes when there is no commit. A traceability row relates a requirement to a case, automation file/test title, run, evidence and eventual Xray ID. Do not invent remote IDs. Multiple rows are expected for many-to-many coverage. `not-run`, `blocked`, `failed`, `passed` and `skipped` are distinct results. Uncovered requirements remain visible with empty test references and a blocking explanation.
 
+## Sequential handoffs
+
+The handoff reports the next agent, purpose, reason, exact command or scoped reply, approval requirement and blockers. For a registered command, a scoped reply can be `Confirm qa requirements for KAN-99 only.` For a blocked stage, identify the missing prerequisite or provide a scoped read-only recovery instruction for the responsible agent. A suggested action does not authorize a protected write.
+
+The default is one stage per request, including read-only analysis. After each verified stage, the orchestrator reports the completed agent, artifact paths, next agent, purpose, command, reason, and confirmation or approval status. The `qa-next --handoff` recommendation exposes the continuation status separately from protected-action approval. For example, `qa requirements` prepares requirements, then waits for confirmation before `qa test-design`.
+
+An explicit request such as “Continue KAN-83 end to end for run design-01 through pre-development review” allows successive safe analysis stages only for that Story and run. The orchestrator supplies the authorized Story and run ID in `runScope`. Each protected operation still needs its own exact preview and approval. Failed, blocked, declined and uncertain steps stop dependent work.
+
+Pre-development design review uses `qa test-review`. Use the same `qa test-review` route with an explicit post-implementation scope when automation review is needed. Store its accepted artifact under `evidence.automationReviewProof` as a path and SHA-256 digest, and recheck reviewed source and test revisions before execution. A legacy acceptance report with matching source, browser test, and case mapping fingerprints is equivalent. Local `qa run` can proceed without a Test Plan. Require the Plan when preparing an Xray import, and retain local results while import is pending.
+
 ## Local completion gate
 
 Before proposing GitHub delivery or using the separate Xray batch routes, require resolved requirements, implementation and automated tests, accepted review, persisted and executed Playwright tests, passing regression checks, completed mappings, and failure analysis. The default `qa xray [STORY-KEY]` chat-approved route may publish Manual Test definitions and same-Story links after accepted design review. The feature record's `published` stage records completion of that publication while its pending stages continue to track development and execution.
